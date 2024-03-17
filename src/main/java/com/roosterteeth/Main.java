@@ -1,9 +1,6 @@
 package com.roosterteeth;
 
-import org.openqa.selenium.By;
-import org.openqa.selenium.SearchContext;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
+import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
@@ -32,6 +29,18 @@ public class Main {
 
         shadowRoot.findElement(By.cssSelector("section > div > div > div > button:nth-child(1)")).click();
         shadowRoot.findElement(By.cssSelector("#new-title")).submit(); //This will create a blank names archive.
+
+        SearchContext archiveShadowRoot = shadowRoot.findElement(By.cssSelector("wr-rec-coll-index")).getShadowRoot().findElement(By.cssSelector("wr-rec-coll-info")).getShadowRoot();
+
+        //Load the starting json.
+
+        //Download archiver
+        archiveShadowRoot.findElement(By.cssSelector("div > div:nth-child(4) > div > a")).click();
+
+        //TODO Wait until file exits/download stops
+//        final String archiveName = "webarchive.wacz";
+//        File downloadedArchive = new File(System.getProperty("user.dir") + "/" +archiveName);
+
 
         driver.quit();
     }
