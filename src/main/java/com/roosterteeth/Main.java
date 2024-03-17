@@ -1,6 +1,9 @@
 package com.roosterteeth;
 
+import org.openqa.selenium.By;
+import org.openqa.selenium.SearchContext;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
@@ -23,6 +26,12 @@ public class Main {
 
         driver.get("chrome-extension://fpeoodllldobpkbkabpblcfaogecpndd/replay/index.html");
         driver.manage().window().maximize();
+
+        WebElement archivePage = driver.findElement(By.tagName("archive-web-page-app"));
+        SearchContext shadowRoot = archivePage.getShadowRoot();
+
+        shadowRoot.findElement(By.cssSelector("section > div > div > div > button:nth-child(1)")).click();
+        shadowRoot.findElement(By.cssSelector("#new-title")).submit(); //This will create a blank names archive.
 
         driver.quit();
     }
