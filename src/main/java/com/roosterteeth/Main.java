@@ -1,47 +1,94 @@
 package com.roosterteeth;
 
-import org.openqa.selenium.*;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
+import com.roosterteeth.worker.ArchiveWorker;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 
 import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
-    public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        ChromeOptions options = new ChromeOptions();
-        File recorderExtension = new File("src/main/resources/extensions/Webrecorder-ArchiveWeb-page.crx");
-        options.addExtensions(recorderExtension);
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        WebDriver driver = new ChromeDriver(options);
+    public static void main(String[] args) throws IOException, ParseException {
 
-        //Install web recorder extension
+        JSONObject urlsObject = null;
 
-        driver.get("chrome-extension://fpeoodllldobpkbkabpblcfaogecpndd/replay/index.html");
-        driver.manage().window().maximize();
+        int numWorkers = 1;
 
-        WebElement archivePage = driver.findElement(By.tagName("archive-web-page-app"));
-        SearchContext shadowRoot = archivePage.getShadowRoot();
+        //Process arguments
+        for(int i = 0;i< args.length;i+=2){
+            String argument = args[i];
+            switch (argument){
+                case "--urls":
+                    String urlsJsonRelativePath = args[i+1];
+                    JSONParser parser = new JSONParser();
+                    if(urlsJsonRelativePath.charAt(0) != File.separatorChar){
+                        urlsJsonRelativePath = File.separatorChar + urlsJsonRelativePath;
+                    }
+                    urlsObject = (JSONObject) parser.parse(new FileReader(new File("").getAbsolutePath() + urlsJsonRelativePath));
+                    break;
+                case "--workers":
+                    numWorkers = Integer.parseInt(args[i+1]);
+                    if(numWorkers <= 0){
+                        throw new IllegalArgumentException("Provided number of workers is 0 or negative!");
+                    }
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown argument provided: " + argument);
+            }
+        }
 
-        shadowRoot.findElement(By.cssSelector("section > div > div > div > button:nth-child(1)")).click();
-        shadowRoot.findElement(By.cssSelector("#new-title")).submit(); //This will create a blank names archive.
+        if(urlsObject == null){
+            throw new IllegalArgumentException("No urls json provided!");
+        }
 
-        SearchContext archiveShadowRoot = shadowRoot.findElement(By.cssSelector("wr-rec-coll-index")).getShadowRoot().findElement(By.cssSelector("wr-rec-coll-info")).getShadowRoot();
+        //Split up urls by number of workers
+        JSONArray seeds = (JSONArray) urlsObject.get("seeds");
+        JSONArray excluded = (JSONArray) urlsObject.get("exclude");
 
-        //Load the starting json.
+        if(excluded == null){
+            excluded = new JSONArray();
+        }
 
-        //Download archiver
-        archiveShadowRoot.findElement(By.cssSelector("div > div:nth-child(4) > div > a")).click();
+        HashSet<String> uniqueSeed = new HashSet<>(seeds);
+        HashSet<String> excludedUrls = new HashSet<>(excluded);
+        List<HashSet<String>> sets = partitionSet(uniqueSeed,numWorkers);
+        for(int i =0;i<numWorkers;i++){
+           Thread workerThread = new Thread(new ArchiveWorker(sets.get(i),excludedUrls,i));
+           workerThread.start();
+        }
 
-        //TODO Wait until file exits/download stops
-//        final String archiveName = "webarchive.wacz";
-//        File downloadedArchive = new File(System.getProperty("user.dir") + "/" +archiveName);
-
-
-        driver.quit();
     }
+
+    /**
+     * Partitions the given hash set of strings into sets based on number of partitions
+     * @param originalSet The original set to be partitioned
+     * @param numPartitions The number of sets to partition the original set into
+     * @return List of size numPartitions of hash sets.
+     */
+    private static List<HashSet<String>> partitionSet(HashSet<String> originalSet,double numPartitions){
+        final double partitionSize = Math.ceil(originalSet.size() / numPartitions);
+
+        List<HashSet<String>> sets = new ArrayList<>();
+
+        Iterator<String> setIterator = originalSet.iterator();
+        while(setIterator.hasNext()){
+            HashSet<String> newSet = new HashSet<>();
+            for(int i =0;i<partitionSize && setIterator.hasNext();i++){
+                newSet.add(setIterator.next());
+            }
+            sets.add(newSet);
+        }
+        return sets;
+    }
+
+    //TODO add shutdown hook that will save progress of workers.
 }
