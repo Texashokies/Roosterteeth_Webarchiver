@@ -12,6 +12,9 @@ import java.io.File;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * A class for an archive worker, that owns an instance of chrome driver.
+ */
 public class ArchiveWorker implements Runnable,IArchiveWorker{
 
     private final HashSet<String> completedURLS;
@@ -26,7 +29,14 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
     private final int workerID;
 
     private static final String EXTENSIONINDEX = "chrome-extension://fpeoodllldobpkbkabpblcfaogecpndd/replay/index.html";
+    private static final String ARCHIVEPAGESELECTOR = "archive-web-page-app";
 
+    /**
+     * Creates an archive worker with given set of urls to archive, to not archive, and it's id
+     * @param urlsToArchive The set of urls the archive worker should archive.
+     * @param excludedURLS Set of urls the archive worker should not archive or add to lists for archiving
+     * @param workerID The unique ID of the archive worker
+     */
     public ArchiveWorker(Set<String> urlsToArchive, Set<String> excludedURLS,int workerID){
         this.urlsToArchive = (HashSet<String>) urlsToArchive;
         this.excludedURLS = (HashSet<String>) excludedURLS;
@@ -45,13 +55,16 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         return foundURLS;
     }
 
+    /**
+     * Creates a chrome driver instance and new archive. Archives all provided urls.
+     */
     @Override
     public void run() {
         LogUtility.logInfo(String.format("Worker %d started", workerID));
         startArchive();
         for(String url: urlsToArchive){
             driver.get(EXTENSIONINDEX);
-            WebElement archivePage = driver.findElement(By.tagName("archive-web-page-app"));
+            WebElement archivePage = driver.findElement(By.tagName(ARCHIVEPAGESELECTOR));
             SearchContext shadowRoot = archivePage.getShadowRoot();
 
             WebElement startRecordingButton = shadowRoot.findElement(By.cssSelector("section > div > div > div > button:nth-child(3)"));
@@ -82,7 +95,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         driver.manage().window().maximize();
 
         //Create new archive
-        WebElement archivePage = driver.findElement(By.tagName("archive-web-page-app"));
+        WebElement archivePage = driver.findElement(By.tagName(ARCHIVEPAGESELECTOR));
         SearchContext shadowRoot = archivePage.getShadowRoot();
 
         shadowRoot.findElement(By.cssSelector("section > div > div > div > button:nth-child(1)")).click();
@@ -95,7 +108,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
      */
     private void endArchiving(){
         driver.get(EXTENSIONINDEX);
-        WebElement archivePage = driver.findElement(By.tagName("archive-web-page-app"));
+        WebElement archivePage = driver.findElement(By.tagName(ARCHIVEPAGESELECTOR));
         SearchContext shadowRoot = archivePage.getShadowRoot();
         SearchContext archiveShadowRoot = shadowRoot.findElement(By.cssSelector("wr-rec-coll-index")).getShadowRoot().findElement(By.cssSelector("wr-rec-coll-info")).getShadowRoot();
         archiveShadowRoot.findElement(By.cssSelector("div > div:nth-child(4) > div > a")).click();
