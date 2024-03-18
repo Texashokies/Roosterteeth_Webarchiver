@@ -7,9 +7,9 @@ import java.util.Set;
  */
 public interface IArchiveWorker {
 
-    public Set<String> getArchivedURLS();
+    Set<String> getArchivedURLS();
 
-    public Set<String> getFoundUnarchivedURLS();
+    Set<String> getFoundUnarchivedURLS();
 
 
 }

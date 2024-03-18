@@ -7,7 +7,7 @@ import org.slf4j.LoggerFactory;
  * Class for logging utilities.
  */
 public class LogUtility {
-    private static Logger logger = LoggerFactory.getLogger("log");
+    private static final Logger logger = LoggerFactory.getLogger("log");
 
     private LogUtility(){
         throw new IllegalStateException("Utility class!");
