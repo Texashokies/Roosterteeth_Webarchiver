@@ -17,11 +17,12 @@ import java.util.List;
 //TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
 // click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
-    public static void main(String[] args) throws IOException, ParseException {
+    public static void main(String[] args) throws IOException, ParseException, InterruptedException {
 
         JSONObject urlsObject = null;
 
         int numWorkers = 1;
+        String archiveName = "roosterteeth-site-archive";
 
         //Process arguments
         for(int i = 0;i< args.length;i+=2){
@@ -40,6 +41,9 @@ public class Main {
                     if(numWorkers <= 0){
                         throw new IllegalArgumentException("Provided number of workers is 0 or negative!");
                     }
+                    break;
+                case "--name":
+                    archiveName = args[i+1];
                     break;
                 default:
                     throw new IllegalArgumentException("Unknown argument provided: " + argument);
@@ -61,11 +65,20 @@ public class Main {
         HashSet<String> uniqueSeed = new HashSet<>(seeds);
         HashSet<String> excludedUrls = new HashSet<>(excluded);
         List<HashSet<String>> sets = partitionSet(uniqueSeed,numWorkers);
+
+        List<ArchiveWorker> workers = new ArrayList<>();
+        List<Thread> threads = new ArrayList<>();
         for(int i =0;i<numWorkers;i++){
-           Thread workerThread = new Thread(new ArchiveWorker(sets.get(i),excludedUrls,i));
+            workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName));
+           Thread workerThread = new Thread(workers.getLast());
+           threads.add(workerThread);
            workerThread.start();
         }
 
+        //Wait for all workers to end
+        for(Thread thread:threads){
+            thread.join();
+        }
     }
 
     /**
