@@ -1,18 +1,21 @@
-package com.roosterteeth.pages;
+package com.roosterteeth.pages.community;
 
+import com.roosterteeth.pages.RoosterteethPage;
 import com.roosterteeth.utility.LogUtility;
 import com.roosterteeth.utility.WaitHelper;
 import org.openqa.selenium.*;
 
+import java.time.Duration;
+import java.util.HashSet;
 import java.util.List;
 
-public class RoosterteethCommunityPage extends RoosterteethPage{
+public class RoosterteethCommunityPage extends RoosterteethPage {
 
     private static final String POST_XPATH = "//div[contains(@class,'wdio-community-feed-post-')]";
     private static final String SHOW_MORE_POSTS_XPATH = "//div[@class='community-feed__options']/button";
 
-    public RoosterteethCommunityPage(String url, WebDriver driver) {
-        super(url, driver);
+    public RoosterteethCommunityPage(String url, WebDriver driver, HashSet<String> excludedURLS) {
+        super(url, driver,excludedURLS);
     }
 
     /**
@@ -26,7 +29,7 @@ public class RoosterteethCommunityPage extends RoosterteethPage{
         }
 
 
-        WaitHelper.waitForElementExistence(By.xpath(SHOW_MORE_POSTS_XPATH),10,driver);
+        WaitHelper.waitForElementExistence(By.xpath(SHOW_MORE_POSTS_XPATH), Duration.ofSeconds(10),driver);
         WebElement showMorePostsButton = driver.findElement(By.xpath(SHOW_MORE_POSTS_XPATH));
         while(showMorePostsButton != null){
             LogUtility.logInfo("Clicking show more posts button!");
@@ -46,7 +49,7 @@ public class RoosterteethCommunityPage extends RoosterteethPage{
                     break;
                 }
             }catch (NoSuchElementException e){
-                WaitHelper.waitForElementExistence(By.xpath(SHOW_MORE_POSTS_XPATH),120,driver);
+                WaitHelper.waitForElementExistence(By.xpath(SHOW_MORE_POSTS_XPATH),Duration.ofMinutes(2),driver);
                 showMorePostsButton = driver.findElement(By.xpath(SHOW_MORE_POSTS_XPATH));
             }
         }
