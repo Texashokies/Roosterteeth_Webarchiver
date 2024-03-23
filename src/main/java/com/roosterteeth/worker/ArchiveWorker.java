@@ -4,11 +4,15 @@ import com.roosterteeth.exceptions.InvalidURLException;
 import com.roosterteeth.pages.RoosterteethPage;
 import com.roosterteeth.pages.RoosterteethPageFactory;
 import com.roosterteeth.utility.LogUtility;
+import com.roosterteeth.utility.WaitHelper;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.io.File;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -59,6 +63,8 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         return foundURLS;
     }
 
+    final String archivesPath = System.getProperty("user.dir") + File.separatorChar + "archives";
+
     /**
      * Starts the chrome driver instance and creates the archive.
      */
@@ -66,7 +72,11 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         ChromeOptions options = new ChromeOptions();
         File recorderExtension = new File("src/main/resources/extensions/Webrecorder-ArchiveWeb-page.crx");
         options.addExtensions(recorderExtension);
-        //TODO set download location to directory
+
+        HashMap<String,Object> chromePrefs = new HashMap<>();
+
+        chromePrefs.put("download.default_directory", archivesPath);
+        options.setExperimentalOption("prefs",chromePrefs);
         driver = new ChromeDriver(options);
 
         //Install web recorder extension
@@ -114,8 +124,9 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
                 }
             }
             try {
-                RoosterteethPage page = RoosterteethPageFactory.getRoosterteethPageFromURL(url,driver);
+                RoosterteethPage page = RoosterteethPageFactory.getRoosterteethPageFromURL(url,driver,excludedURLS);
                 page.archivePage();
+                foundURLS.addAll(page.getFoundUnarchivedURLS());
             } catch (InvalidURLException e) {
                 e.printStackTrace();
             }
@@ -136,8 +147,9 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         WebElement archivePage = driver.findElement(By.tagName(ARCHIVEPAGESELECTOR));
         SearchContext shadowRoot = archivePage.getShadowRoot();
         SearchContext archiveShadowRoot = shadowRoot.findElement(By.cssSelector("wr-rec-coll-index")).getShadowRoot().findElement(By.cssSelector("wr-rec-coll-info")).getShadowRoot();
+        //TODO may want to check that file doesn't already exists so proper name can be searched in wait.
         archiveShadowRoot.findElement(By.cssSelector("div > div:nth-child(4) > div > a")).click();
-        //TODO add a wait for download to complete.
+        WaitHelper.waitForFileToDownload( archivesPath + File.separator + archiveName + ".wacz", Duration.ofMinutes(10));
         driver.quit();
     }
 
