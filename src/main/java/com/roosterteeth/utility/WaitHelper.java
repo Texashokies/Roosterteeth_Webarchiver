@@ -139,4 +139,44 @@ public class WaitHelper {
         wait.until( (file -> file.exists() && file.canRead()));
     }
 
+    /**
+     * Waits for the currently active tab to be the given url.
+     * @param url The url the tab should be
+     * @param timeout The duration until wait times out
+     * @param driver The webdriver
+     */
+    public static void waitForUrlToBe(String url,Duration timeout,WebDriver driver){
+        FluentWait<WebDriver> wait = new FluentWait<>(driver);
+        wait.pollingEvery(Duration.ofMillis(250));
+        wait.withTimeout(timeout);
+        wait.until(webdriver->driver.getCurrentUrl().equals(url));
+    }
+
+    /**
+     * Waits for the element found to have the given class
+     * @param by The way to find the element
+     * @param classToWaitFor The class the element should have
+     * @param timeout The duration until wait times out
+     * @param driver The webdriver
+     */
+    public static void waitForElementToHaveClass(By by,String classToWaitFor,Duration timeout,WebDriver driver){
+        FluentWait<WebDriver> wait = new FluentWait<>(driver);
+        wait.pollingEvery(Duration.ofMillis(250));
+        wait.withTimeout(timeout);
+        wait.until(webdriver->driver.findElement(by).getAttribute("class").contains(classToWaitFor));
+    }
+
+    /**
+     * Waits for a new window to be opened.
+     * @param timeout The duration until wait times out
+     * @param driver The webdriver
+     * @param previousSize The number of windows that were open before the new window opens
+     */
+    public static void waitForNewWindowToOpen(Duration timeout,WebDriver driver,int previousSize){
+        FluentWait<WebDriver> wait = new FluentWait<>(driver);
+        wait.pollingEvery((Duration.ofMillis(250)));
+        wait.withTimeout(timeout);
+        wait.until(webdriver->driver.getWindowHandles().size()>previousSize);
+    }
+
 }
