@@ -25,9 +25,7 @@ public class StoreCollectionPage extends RoosterteethPage {
     @Override
     public void archivePage() {
         //Click show more for posts
-        if (!driver.getCurrentUrl().equals(url)) {
-            driver.get(url);
-        }
+        driver.get(url);
 
         WaitHelper.waitForPageReady(Duration.ofSeconds(10),driver);
 
@@ -50,7 +48,7 @@ public class StoreCollectionPage extends RoosterteethPage {
             WebElement quickViewButton = driver.findElement(By.xpath(PRODUCT_XPATH + "[" + (i+1) + "]//button[contains(@class,'boost-pfs-quickview-btn')]"));
             quickViewButton.click();
 
-            WaitHelper.waitForElementVisible(By.xpath("//div[@class='boost-pfs-quickview-content']"),Duration.ofSeconds(10),driver);
+            WaitHelper.waitForElementVisible(By.xpath("//div[@class='boost-pfs-quickview-content']"),Duration.ofSeconds(30),driver);
 
             //Get number of images in slider. This xpath also picks up the dots container so subtract 1
             final int numImages = driver.findElements(By.xpath("//div[contains(@class,'boost-pfs-quickview-slider-dot')]")).size() - 1;
@@ -66,18 +64,19 @@ public class StoreCollectionPage extends RoosterteethPage {
         }
 
         //WAit some time just in case
-        driver.manage().timeouts().implicitlyWait(Duration.ofMinutes(1));
+        LogUtility.logInfo("Waiting 2 minutes");
+        driver.manage().timeouts().implicitlyWait(Duration.ofMinutes(2));
 
     }
 
     @Override
     public Set<String> getFoundUnarchivedURLS(){
-        List<WebElement> productLinks = driver.findElements(By.xpath(PRODUCT_XPATH + "/div[@class='boost-pfs-filter-product-item-image']/a"));
+        List<WebElement> productLinks = driver.findElements(By.xpath(PRODUCT_XPATH + "//div[@class='boost-pfs-filter-product-item-image']/a"));
 
         HashSet<String> unArchivedProducts = new HashSet<>();
 
         for(WebElement product: productLinks){
-            String url = "https://store.roosterteeth.com" + product.getAttribute("href");
+            String url = product.getAttribute("href");
             if(!excludedURLS.contains(url)){
                 unArchivedProducts.add(url);
             }
