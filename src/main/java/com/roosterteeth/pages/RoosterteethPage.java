@@ -2,6 +2,7 @@ package com.roosterteeth.pages;
 
 import org.openqa.selenium.WebDriver;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -19,11 +20,17 @@ public class RoosterteethPage implements IRoosterteethPage{
     }
 
     /**
-     * Opens page
+     * Opens page and waits 30 seconds for archiving.
      */
     @Override
     public void archivePage() {
         driver.get(url);
+
+        try{
+            Thread.sleep(Duration.ofSeconds(30));
+        } catch (InterruptedException e){
+            e.printStackTrace();
+        }
     }
 
     @Override
