@@ -10,7 +10,6 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 
 import java.io.File;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -81,6 +80,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
 
         //Install web recorder extension
         driver.get(EXTENSIONINDEX);
+        LogUtility.logInfo("Archive index Window handle: " + driver.getWindowHandle());
         driver.manage().window().maximize();
 
         //Create new archive
@@ -102,36 +102,51 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         LogUtility.logInfo(String.format("Worker %d started", workerID));
         startArchive();
 
-        String archiveIndexHandle = driver.getWindowHandle();
-        for(String url: urlsToArchive){
-            driver.switchTo().window(archiveIndexHandle);
-            WebElement archivePage = driver.findElement(By.tagName(ARCHIVEPAGESELECTOR));
-            SearchContext shadowRoot = archivePage.getShadowRoot();
+        WebElement archivePage = driver.findElement(By.tagName(ARCHIVEPAGESELECTOR));
+        SearchContext shadowRoot = archivePage.getShadowRoot();
 
-            WebElement startRecordingButton = shadowRoot.findElement(By.cssSelector("section > div > div > div > button:nth-child(3)"));
+        WebElement startRecordingButton = shadowRoot.findElement(By.cssSelector("section > div > div > div > button:nth-child(3)"));
+        try{
             startRecordingButton.click();
+        }catch (ElementClickInterceptedException e){
+            driver.navigate().refresh();
+            archivePage = driver.findElement(By.tagName(ARCHIVEPAGESELECTOR));
+            shadowRoot = archivePage.getShadowRoot();
+            startRecordingButton = shadowRoot.findElement(By.cssSelector("section > div > div > div > button:nth-child(3)"));
+            startRecordingButton.click();
+        }
 
-            //TODO open page to archive and run archival logic
-            WebElement urlInput = shadowRoot.findElement(By.cssSelector("#url"));
-            ((JavascriptExecutor)driver).executeScript("arguments[0].value = arguments[1]",urlInput,url);
-            WebElement goButton=  shadowRoot.findElement(By.cssSelector("wr-modal > form > div > div > button"));
-            ((JavascriptExecutor)driver).executeScript("arguments[0].click()",goButton);
-            //Switch to recently opened handle
-            for(String windowHandle : driver.getWindowHandles()){
-                if(!archiveIndexHandle.equals(windowHandle)){
-                    driver.switchTo().window(windowHandle);
-                    break;
+        String url = urlsToArchive.iterator().next();
+        WebElement urlInput = shadowRoot.findElement(By.cssSelector("#url"));
+        ((JavascriptExecutor)driver).executeScript("arguments[0].value = arguments[1]",urlInput,url);
+        WebElement goButton=  shadowRoot.findElement(By.cssSelector("wr-modal > form > div > div > button"));
+        ((JavascriptExecutor)driver).executeScript("arguments[0].click()",goButton);
+        WaitHelper.waitForNewWindowToOpen(Duration.ofSeconds(10),driver,1);
+        //Switch to recently opened handle
+        String archiveIndexHandle = driver.getWindowHandle();
+        for(String windowHandle : driver.getWindowHandles()){
+            if(!archiveIndexHandle.equals(windowHandle)){
+                driver.switchTo().window(windowHandle);
+                try{
+                    WaitHelper.waitForUrlToBe(url,Duration.ofSeconds(20),driver);
+                }catch (TimeoutException e){
+                    LogUtility.logInfo("Shutting down webdriver and trying again");
+                    driver.quit();
+                    run();
+                    return;
                 }
+                break;
             }
+        }
+
+        for(String urlToArchive:urlsToArchive){
             try {
-                RoosterteethPage page = RoosterteethPageFactory.getRoosterteethPageFromURL(url,driver,excludedURLS);
+                RoosterteethPage page = RoosterteethPageFactory.getRoosterteethPageFromURL(urlToArchive,driver,excludedURLS);
                 page.archivePage();
                 foundURLS.addAll(page.getFoundUnarchivedURLS());
             } catch (InvalidURLException e) {
                 e.printStackTrace();
             }
-            //Close page
-            driver.close();
         }
         driver.switchTo().window(archiveIndexHandle);
         endArchiving();
