@@ -1,5 +1,6 @@
 package com.roosterteeth;
 
+import com.roosterteeth.utility.LogUtility;
 import com.roosterteeth.worker.ArchiveWorker;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -23,7 +24,7 @@ public class Main {
 
         int numWorkers = 1;
         String archiveName = "roosterteeth-site-archive";
-
+        int depth = Integer.MAX_VALUE;
         //Process arguments
         for(int i = 0;i< args.length;i+=2){
             String argument = args[i];
@@ -45,11 +46,29 @@ public class Main {
                 case "--name":
                     archiveName = args[i+1];
                     break;
+                case "--depth":
+                    depth = Integer.parseInt(args[i+1]);
+                    if(depth<=0){
+                        throw new IllegalArgumentException("Provided depth is 0 or negative");
+                    }
+                    break;
                 default:
                     throw new IllegalArgumentException("Unknown argument provided: " + argument);
             }
         }
 
+        runWorkers(urlsObject,numWorkers,archiveName,depth);
+    }
+
+    /**
+     * Starts and runs the archive workers.
+     * @param urlsObject The json containing list of urls to archive and exclude from archive
+     * @param numWorkers The number of workers (threads) to use
+     * @param archiveName The name of the archive
+     * @param depth How deep should the archiving go
+     * @throws InterruptedException Worker threads may be interrupted
+     */
+    private static void runWorkers(JSONObject urlsObject,int numWorkers,String archiveName,int depth) throws InterruptedException {
         if(urlsObject == null){
             throw new IllegalArgumentException("No urls json provided!");
         }
@@ -64,21 +83,47 @@ public class Main {
 
         HashSet<String> uniqueSeed = new HashSet<>(seeds);
         HashSet<String> excludedUrls = new HashSet<>(excluded);
-        List<HashSet<String>> sets = partitionSet(uniqueSeed,numWorkers);
 
-        List<ArchiveWorker> workers = new ArrayList<>();
-        List<Thread> threads = new ArrayList<>();
-        for(int i =0;i<numWorkers;i++){
-            workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName));
-           Thread workerThread = new Thread(workers.getLast());
-           threads.add(workerThread);
-           workerThread.start();
-        }
+        int pass = 1;
 
-        //Wait for all workers to end
-        for(Thread thread:threads){
-            thread.join();
-        }
+        do{
+            LogUtility.logInfo(String.format("----------------Pass %d: num urls %d----------------", pass,uniqueSeed.size()));
+            List<HashSet<String>> sets = partitionSet(uniqueSeed,numWorkers);
+
+            List<ArchiveWorker> workers = new ArrayList<>();
+            List<Thread> threads = new ArrayList<>();
+            for(int i =0;i<numWorkers && i<sets.size();i++){
+                //TODO remove pass naming scheme if importing archives is possible.
+                workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName + String.format("_pass_%d_", pass)));
+                Thread workerThread = new Thread(workers.getLast());
+                threads.add(workerThread);
+                workerThread.start();
+            }
+
+            //Wait for all workers to end
+            for(Thread thread:threads){
+                thread.join();
+            }
+            //get results from workers
+            HashSet<String> unarchivedFoundPages = new HashSet<>();
+            for(ArchiveWorker worker: workers){
+                unarchivedFoundPages.addAll(worker.getFoundUnarchivedURLS());
+            }
+
+            HashSet<String> alreadyArchivedAndExcluded = new HashSet<>();
+            alreadyArchivedAndExcluded.addAll(excludedUrls);
+            alreadyArchivedAndExcluded.addAll(uniqueSeed);
+
+            excludedUrls = alreadyArchivedAndExcluded;
+
+            uniqueSeed = new HashSet<>();
+            for(String url : unarchivedFoundPages){
+                if(!excludedUrls.contains(url)){
+                    uniqueSeed.add(url);
+                }
+            }
+            pass++;
+        }while (!uniqueSeed.isEmpty() && pass<depth);
     }
 
     /**
