@@ -39,4 +39,21 @@ public class LogUtility {
         return Thread.currentThread().getStackTrace()[3].getMethodName();
     }
 
+    /**
+     * Logs with logger an error message
+     * @param message The error message
+     */
+    public static void logError(String message) {
+        logError(generateCallingMethodName(),message);
+    }
+
+    /**
+     * Logs with logger an error message
+     * @param method The method with the error
+     * @param message The message to log
+     */
+    public static void logError(String method,String message){
+        String statement = String.format("%s%s - %s","Method - ",method,message);
+        logger.error(statement);
+    }
 }
