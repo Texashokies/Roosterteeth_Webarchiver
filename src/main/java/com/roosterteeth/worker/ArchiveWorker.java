@@ -8,8 +8,16 @@ import com.roosterteeth.utility.WaitHelper;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.remote.RemoteWebDriver;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.channels.ClosedChannelException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,6 +41,8 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
 
     private String archiveName;
 
+    private String gridPath;
+
     private static final String EXTENSIONINDEX = "chrome-extension://fpeoodllldobpkbkabpblcfaogecpndd/replay/index.html";
     private static final String ARCHIVEPAGESELECTOR = "archive-web-page-app";
 
@@ -43,13 +53,14 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
      * @param workerID The unique ID of the archive worker
      * @param archiveName What the created archive should be named.
      */
-    public ArchiveWorker(Set<String> urlsToArchive, Set<String> excludedURLS,int workerID,String archiveName){
+    public ArchiveWorker(Set<String> urlsToArchive, Set<String> excludedURLS,int workerID,String archiveName,String gridPath){
         this.urlsToArchive = (HashSet<String>) urlsToArchive;
         this.excludedURLS = (HashSet<String>) excludedURLS;
         this.workerID = workerID;
         foundURLS = new HashSet<>();
         completedURLS = new HashSet<>();
         this.archiveName = archiveName + "_worker"+workerID;
+        this.gridPath = gridPath;
     }
 
     @Override
@@ -76,7 +87,19 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
 
         chromePrefs.put("download.default_directory", archivesPath);
         options.setExperimentalOption("prefs",chromePrefs);
-        driver = new ChromeDriver(options);
+        if(gridPath != null){
+            DesiredCapabilities capabilities = new DesiredCapabilities();
+            capabilities.setCapability(ChromeOptions.CAPABILITY,options);
+            try {
+                driver = new RemoteWebDriver( new URI(gridPath).toURL(),capabilities);
+            } catch (URISyntaxException | SessionNotCreatedException | MalformedURLException e) {
+                LogUtility.logError("Unable to start session in grid, starting in local!");
+                driver = new ChromeDriver(options);
+            }
+        }else{
+            driver = new ChromeDriver(options);
+        }
+
 
         //Install web recorder extension
         driver.get(EXTENSIONINDEX);

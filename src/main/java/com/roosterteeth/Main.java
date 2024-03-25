@@ -25,6 +25,7 @@ public class Main {
         int numWorkers = 1;
         String archiveName = "roosterteeth-site-archive";
         int depth = Integer.MAX_VALUE;
+        String gridpath = null;
         //Process arguments
         for(int i = 0;i< args.length;i+=2){
             String argument = args[i];
@@ -52,12 +53,15 @@ public class Main {
                         throw new IllegalArgumentException("Provided depth is 0 or negative");
                     }
                     break;
+                case "--grid":
+                    gridpath = args[i+1];
+                    break;
                 default:
                     throw new IllegalArgumentException("Unknown argument provided: " + argument);
             }
         }
 
-        runWorkers(urlsObject,numWorkers,archiveName,depth);
+        runWorkers(urlsObject,numWorkers,archiveName,depth,gridpath);
     }
 
     /**
@@ -68,7 +72,7 @@ public class Main {
      * @param depth How deep should the archiving go
      * @throws InterruptedException Worker threads may be interrupted
      */
-    private static void runWorkers(JSONObject urlsObject,int numWorkers,String archiveName,int depth) throws InterruptedException {
+    private static void runWorkers(JSONObject urlsObject,int numWorkers,String archiveName,int depth,String gridpath) throws InterruptedException {
         if(urlsObject == null){
             throw new IllegalArgumentException("No urls json provided!");
         }
@@ -94,7 +98,7 @@ public class Main {
             List<Thread> threads = new ArrayList<>();
             for(int i =0;i<numWorkers && i<sets.size();i++){
                 //TODO remove pass naming scheme if importing archives is possible.
-                workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName + String.format("_pass_%d_", pass)));
+                workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName + String.format("_pass_%d_", pass),gridpath));
                 Thread workerThread = new Thread(workers.getLast());
                 threads.add(workerThread);
                 workerThread.start();
@@ -123,7 +127,7 @@ public class Main {
                 }
             }
             pass++;
-        }while (!uniqueSeed.isEmpty() && pass<depth);
+        }while (!uniqueSeed.isEmpty() && pass<=depth);
     }
 
     /**
