@@ -30,7 +30,7 @@ public class StoreCollectionPage extends RoosterteethPage {
         WaitHelper.waitForPageReady(Duration.ofSeconds(10),driver);
 
         //Get number of products
-        final int numProducts = Integer.parseInt(driver.findElement(By.xpath("//span[@class='boost-pfs-filter-total-product']")).getText().replace(" Products",""));
+        final int numProducts = Integer.parseInt(driver.findElement(By.xpath("//span[@class='boost-pfs-filter-total-product']")).getText().replace(" Products","").replace(" Product",""));
 
         List<WebElement> products = driver.findElements(By.xpath(PRODUCT_XPATH));
         while(products.size() < numProducts){
@@ -48,7 +48,7 @@ public class StoreCollectionPage extends RoosterteethPage {
             WebElement quickViewButton = driver.findElement(By.xpath(PRODUCT_XPATH + "[" + (i+1) + "]//button[contains(@class,'boost-pfs-quickview-btn')]"));
             quickViewButton.click();
 
-            WaitHelper.waitForElementVisible(By.xpath("//div[@class='boost-pfs-quickview-content']"),Duration.ofSeconds(30),driver);
+            WaitHelper.waitForElementVisible(By.xpath("//div[@class='boost-pfs-quickview-content']"),Duration.ofSeconds(40),driver);
 
             //Get number of images in slider. This xpath also picks up the dots container so subtract 1
             final int numImages = driver.findElements(By.xpath("//div[contains(@class,'boost-pfs-quickview-slider-dot')]")).size() - 1;
