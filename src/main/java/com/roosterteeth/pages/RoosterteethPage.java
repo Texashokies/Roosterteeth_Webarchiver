@@ -35,6 +35,6 @@ public class RoosterteethPage implements IRoosterteethPage{
 
     @Override
     public Set<String> getFoundUnarchivedURLS() {
-        return null;
+        return new HashSet<>();
     }
 }
