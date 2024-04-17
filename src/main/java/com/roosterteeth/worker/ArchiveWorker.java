@@ -151,7 +151,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
             if(!archiveIndexHandle.equals(windowHandle)){
                 driver.switchTo().window(windowHandle);
                 try{
-                    WaitHelper.waitForUrlToBe(url,Duration.ofSeconds(20),driver);
+                    WaitHelper.waitForUrlToBe(url,Duration.ofSeconds(20),driver,true);
                 }catch (TimeoutException e){
                     LogUtility.logInfo("Shutting down webdriver and trying again");
                     driver.quit();
