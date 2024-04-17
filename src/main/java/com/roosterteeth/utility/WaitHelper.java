@@ -1,5 +1,6 @@
 package com.roosterteeth.utility;
 
+import org.apache.commons.lang3.StringUtils;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.NoSuchElementException;
@@ -144,12 +145,19 @@ public class WaitHelper {
      * @param url The url the tab should be
      * @param timeout The duration until wait times out
      * @param driver The webdriver
+     * @param ignoreQuery If the check should ignore query params
      */
-    public static void waitForUrlToBe(String url,Duration timeout,WebDriver driver){
+    public static void waitForUrlToBe(String url,Duration timeout,WebDriver driver, boolean ignoreQuery){
         FluentWait<WebDriver> wait = new FluentWait<>(driver);
         wait.pollingEvery(Duration.ofMillis(250));
         wait.withTimeout(timeout);
-        wait.until(webdriver->driver.getCurrentUrl().equals(url));
+        wait.until(webdriver->{
+            if(ignoreQuery){
+                return StringUtils.substringBefore(driver.getCurrentUrl(),"?").equals(url);
+            } else {
+                return driver.getCurrentUrl().equals(url);
+            }
+        });
     }
 
     /**
@@ -164,6 +172,21 @@ public class WaitHelper {
         wait.pollingEvery(Duration.ofMillis(250));
         wait.withTimeout(timeout);
         wait.until(webdriver->driver.findElement(by).getAttribute("class").contains(classToWaitFor));
+    }
+
+    /**
+     * Waits for the elements given attribute to not match previous value
+     * @param by The way to find the element
+     * @param attribute The attribute to check
+     * @param previousValue The previous value of the attribute it should change from
+     * @param timeout The duration until wait times out
+     * @param driver The webdriver
+     */
+    public static void waitForElementAttributeToChange(By by,String attribute,String previousValue,Duration timeout,WebDriver driver){
+        FluentWait<WebDriver> wait = new FluentWait<>(driver);
+        wait.pollingEvery(Duration.ofMillis(250));
+        wait.withTimeout(timeout);
+        wait.until(webdriver->!driver.findElement(by).getAttribute(attribute).equals(previousValue));
     }
 
     /**
