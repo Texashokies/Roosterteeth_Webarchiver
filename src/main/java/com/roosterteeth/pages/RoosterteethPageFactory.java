@@ -1,6 +1,9 @@
 package com.roosterteeth.pages;
 
 import com.roosterteeth.exceptions.InvalidURLException;
+import com.roosterteeth.pages.community.RoosteerTeethGroupPage;
+import com.roosterteeth.pages.community.RoosterTeethGroupsPage;
+import com.roosterteeth.pages.community.RoosterTeethUserPage;
 import com.roosterteeth.pages.community.RoosterteethCommunityPage;
 import com.roosterteeth.pages.rtstore.StoreCollectionPage;
 import com.roosterteeth.pages.rtstore.StoreProductPage;
@@ -22,6 +25,13 @@ public class RoosterteethPageFactory {
         }
 
         if(url.contains("/g")){
+            if (url.contains("/g/all")) {
+                return new RoosterTeethGroupsPage(url,driver,excludedURLS);
+            } else if(!url.contains("/user")){
+                return new RoosteerTeethGroupPage(url,driver,excludedURLS);
+            } else if(url.contains("/user")) {
+                return new RoosterTeethUserPage(url,driver,excludedURLS);
+            }
             //TODO distinguish between users and groups
             return new RoosterteethCommunityPage(url,driver,excludedURLS);
         }

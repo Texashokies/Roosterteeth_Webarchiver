@@ -105,7 +105,9 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         driver.get(EXTENSIONINDEX);
         LogUtility.logInfo("Archive index Window handle: " + driver.getWindowHandle());
         driver.manage().window().maximize();
+    }
 
+    private void createNewArchive(){
         //Create new archive
         WebElement archivePage = driver.findElement(By.tagName(ARCHIVEPAGESELECTOR));
         SearchContext shadowRoot = archivePage.getShadowRoot();
@@ -125,8 +127,19 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         LogUtility.logInfo(String.format("Worker %d started", workerID));
         startArchive();
 
+        createNewArchive();
+
         WebElement archivePage = driver.findElement(By.tagName(ARCHIVEPAGESELECTOR));
         SearchContext shadowRoot = archivePage.getShadowRoot();
+
+        SearchContext archiveShadowRoot = shadowRoot.findElement(By.cssSelector("wr-rec-coll-index")).getShadowRoot();
+        while(archiveShadowRoot.findElements(By.cssSelector("div.coll-list")).isEmpty()){
+            driver.navigate().refresh();
+            createNewArchive();
+            archivePage = driver.findElement(By.tagName(ARCHIVEPAGESELECTOR));
+            shadowRoot = archivePage.getShadowRoot();
+            archiveShadowRoot = shadowRoot.findElement(By.cssSelector("wr-rec-coll-index")).getShadowRoot();
+        }
 
         WebElement startRecordingButton = shadowRoot.findElement(By.cssSelector("section > div > div > div > button:nth-child(3)"));
         try{
@@ -162,7 +175,9 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
             }
         }
 
+        int urlIndex = 1;
         for(String urlToArchive:urlsToArchive){
+            LogUtility.logInfo(String.format("Starting to archive url %d of %d", urlIndex++,urlsToArchive.size()));
             try {
                 RoosterteethPage page = RoosterteethPageFactory.getRoosterteethPageFromURL(urlToArchive,driver,excludedURLS);
                 page.archivePage();
