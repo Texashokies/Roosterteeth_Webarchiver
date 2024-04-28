@@ -1,5 +1,6 @@
 package com.roosterteeth;
 
+import com.roosterteeth.hooks.WorkersShutdownHook;
 import com.roosterteeth.utility.LogUtility;
 import com.roosterteeth.worker.ArchiveWorker;
 import org.json.simple.JSONArray;
@@ -11,6 +12,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -64,18 +69,22 @@ public class Main {
             }
         }
 
+        final String originalArchiveName = archiveName;
         //Check archive name isn't already used.
         File archiveDirectory = new File(System.getProperty("user.dir") + File.separatorChar + "archives" + File.separatorChar + archiveName);
-        if(archiveDirectory.mkdir()){
+        Path archivePath = archiveDirectory.toPath();
 
-        } else{
-            final String originalName = archiveName;
-            int directorySpecifier = 0;
-            while(!archiveDirectory.mkdir()){
-                archiveDirectory = new File(System.getProperty("user.dir") + File.separatorChar + "archives" + File.separatorChar + archiveName);
-                directorySpecifier++;
-                archiveName = originalName + "_"+directorySpecifier;
+        int fileNameIndex = 1;
+        try{
+            while(Files.list(archivePath).count() > 0){
+                archiveName = originalArchiveName +"_"+ fileNameIndex;
+                archiveDirectory =  new File(System.getProperty("user.dir") + File.separatorChar + "archives" + File.separatorChar + archiveName);
+                archivePath = archiveDirectory.toPath();
+                fileNameIndex++;
             }
+        }catch(NoSuchFileException e){
+            //Directory does not exist.
+            archiveDirectory.mkdir();
         }
 
         runWorkers(urlsObject,numWorkers,archiveName,depth,gridpath);
@@ -98,16 +107,23 @@ public class Main {
         JSONArray seeds = (JSONArray) urlsObject.get("seeds");
         JSONArray excluded = (JSONArray) urlsObject.get("exclude");
         JSONArray previouslyCompleted = (JSONArray) urlsObject.get("completed");
+        JSONArray previouslyFailed = (JSONArray) urlsObject.get("failed");
 
         if(excluded == null){
             excluded = new JSONArray();
         }
 
         HashSet<String> uniqueSeed = new HashSet<>(seeds);
+        if(previouslyFailed != null){
+            uniqueSeed.addAll(previouslyFailed);
+        }
         HashSet<String> excludedUrls = new HashSet<>(excluded);
-        excludedUrls.addAll(previouslyCompleted);
+        if(previouslyCompleted != null){
+            excludedUrls.addAll(previouslyCompleted);
+        }
 
         HashSet<String> completed = new HashSet<>();
+        HashSet<String> failed = new HashSet<>();
 
         int pass = 1;
 
@@ -117,6 +133,10 @@ public class Main {
 
             List<ArchiveWorker> workers = new ArrayList<>();
             List<Thread> threads = new ArrayList<>();
+
+//            WorkersShutdownHook shutdownHook = new WorkersShutdownHook(workers,threads,completed,excludedUrls);
+//            Runtime.getRuntime().addShutdownHook(shutdownHook);
+
             for(int i =0;i<numWorkers && i<sets.size();i++){
                 //TODO remove pass naming scheme if importing archives is possible.
                 workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName,pass,gridpath));
@@ -133,9 +153,9 @@ public class Main {
             HashSet<String> unarchivedFoundPages = new HashSet<>();
             for(ArchiveWorker worker: workers){
                 unarchivedFoundPages.addAll(worker.getFoundUnarchivedURLS());
+                failed.addAll(worker.getFailedURLS());
+                completed.addAll(worker.getArchivedURLS());
             }
-
-            completed.addAll(uniqueSeed);
 
             HashSet<String> alreadyArchivedAndExcluded = new HashSet<>();
             alreadyArchivedAndExcluded.addAll(excludedUrls);
@@ -150,17 +170,24 @@ public class Main {
                 }
             }
             pass++;
+            //Runtime.getRuntime().removeShutdownHook(shutdownHook);
         }while (!uniqueSeed.isEmpty() && pass<=depth);
 
+        //TODO need to do something about shutdown hooks so this is also safe if closed.
         JSONObject results = new JSONObject();
         JSONArray seedsArray = new JSONArray();
         seedsArray.addAll(uniqueSeed);
         results.put("seeds", seedsArray);
         JSONArray completedArray = new JSONArray();
         completedArray.addAll(completed);
+        JSONArray failedArray = new JSONArray();
+        failedArray.addAll(failed);
         results.put("completed",completedArray);
         results.put("exclude",excludedUrls);
-        FileWriter file = new FileWriter("output.json");
+        results.put("failed",failedArray);
+
+        //Check if output.json exists
+        FileWriter file = new FileWriter( System.getProperty("user.dir") + File.separatorChar + "archives" + File.separatorChar + archiveName + File.separatorChar + "output.json");
         file.write(results.toJSONString());
         file.close();
     }

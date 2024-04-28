@@ -1,6 +1,7 @@
 package com.roosterteeth.worker;
 
 import com.roosterteeth.exceptions.InvalidURLException;
+import com.roosterteeth.hooks.WorkerShutdownHook;
 import com.roosterteeth.pages.RoosterteethPage;
 import com.roosterteeth.pages.RoosterteethPageFactory;
 import com.roosterteeth.utility.LogUtility;
@@ -12,12 +13,9 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.channels.ClosedChannelException;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,6 +27,7 @@ import java.util.Set;
 public class ArchiveWorker implements Runnable,IArchiveWorker{
 
     private final HashSet<String> completedURLS;
+    private final HashSet<String> failedURLS;
     private final HashSet<String> foundURLS;
 
     private final HashSet<String> urlsToArchive;
@@ -64,6 +63,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         this.archiveName = archiveName;
         this.pass = pass;
         this.gridPath = gridPath;
+        failedURLS = new HashSet<>();
     }
 
     @Override
@@ -72,8 +72,18 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
     }
 
     @Override
+    public Set<String> getFailedURLS() {
+        return failedURLS;
+    }
+
+    @Override
     public HashSet<String> getFoundUnarchivedURLS() {
         return foundURLS;
+    }
+
+    @Override
+    public HashSet<String> getUrlsToArchive() {
+        return urlsToArchive;
     }
 
     /**
@@ -102,7 +112,6 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         }else{
             driver = new ChromeDriver(options);
         }
-
 
         //Install web recorder extension
         driver.get(EXTENSIONINDEX);
@@ -178,13 +187,24 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
             }
         }
 
+
+
         int urlIndex = 1;
+        WorkerShutdownHook shutdownHook = new WorkerShutdownHook(this,archiveIndexHandle);
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
+        //Will continue until done with last url. Ends archiving.
         for(String urlToArchive:urlsToArchive){
             LogUtility.logInfo(String.format("Starting to archive url %d of %d", urlIndex++,urlsToArchive.size()));
             try {
                 RoosterteethPage page = RoosterteethPageFactory.getRoosterteethPageFromURL(urlToArchive,driver,excludedURLS);
-                page.archivePage();
+                try{
+                    page.archivePage();
+                }catch (WebDriverException e){
+                    failedURLS.add(urlToArchive);
+                    continue;
+                }
                 foundURLS.addAll(page.getFoundUnarchivedURLS());
+                completedURLS.add(urlToArchive);
             } catch (InvalidURLException e) {
                 e.printStackTrace();
             }
@@ -193,12 +213,19 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         endArchiving();
     }
 
+    public void switchToHandle(String handle){
+        driver.switchTo().window(handle);
+    }
 
+    boolean hasArchived = false;
+    public boolean hasArchived(){
+        return hasArchived;
+    }
 
     /**
      * Downloads the created archive and stops the chrome driver instance.
      */
-    private void endArchiving(){
+    public void endArchiving(){
         driver.get(EXTENSIONINDEX);
         WebElement archivePage = driver.findElement(By.tagName(ARCHIVEPAGESELECTOR));
         SearchContext shadowRoot = archivePage.getShadowRoot();
@@ -214,6 +241,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
             //Still need to quite driver.
         }
         driver.quit();
+        hasArchived = true;
     }
 
 

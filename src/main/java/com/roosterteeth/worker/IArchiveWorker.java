@@ -1,5 +1,6 @@
 package com.roosterteeth.worker;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -9,7 +10,9 @@ public interface IArchiveWorker {
 
     Set<String> getArchivedURLS();
 
+    Set<String> getFailedURLS();
+
     Set<String> getFoundUnarchivedURLS();
 
-
+    HashSet<String> getUrlsToArchive();
 }
