@@ -54,8 +54,10 @@ public class Main {
                     }
                     break;
                 case "--grid":
-                    gridpath = args[i+1];
-                    break;
+                    throw  new IllegalArgumentException("Running on grid not currently supported. Check for newer release!");
+                    //TODO uncomment out once support for downloading archives from grid is added.
+//                    gridpath = args[i+1];
+//                    break;
                 default:
                     throw new IllegalArgumentException("Unknown argument provided: " + argument);
             }
