@@ -19,6 +19,11 @@ public class ScrollerUtility{
                 .executeScript("arguments[0].scrollTo(0, 0)",element);
     }
 
+    public static void scrollToPageTop(WebDriver driver){
+        ((JavascriptExecutor) driver)
+                .executeScript("window.scrollTo(0, 0)");
+    }
+
     public static void scrollToPageBottom(WebDriver driver) {
         ((JavascriptExecutor) driver)
                 .executeScript("window.scrollTo(0, document.body.scrollHeight)");

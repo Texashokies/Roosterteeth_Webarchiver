@@ -1,5 +1,6 @@
 package com.roosterteeth.pages;
 
+import com.roosterteeth.utility.ScrollerUtility;
 import org.openqa.selenium.WebDriver;
 
 import java.time.Duration;
@@ -25,6 +26,8 @@ public class RoosterteethPage implements IRoosterteethPage{
     @Override
     public void archivePage() {
         driver.get(url);
+
+        ScrollerUtility.scrollToPageBottom(driver);
 
         try{
             Thread.sleep(Duration.ofSeconds(30));

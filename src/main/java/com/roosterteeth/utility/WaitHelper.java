@@ -1,16 +1,14 @@
 package com.roosterteeth.utility;
 
 import org.apache.commons.lang3.StringUtils;
-import org.openqa.selenium.By;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 
 public class WaitHelper {
@@ -67,6 +65,12 @@ public class WaitHelper {
         WebDriverWait wait = new WebDriverWait(driver,timeoutDuration);
         wait.pollingEvery(Duration.ofMillis(250));
         wait.until((driver1 -> driver1.findElements(by).size() > previousSize));
+    }
+
+    public static void waitForElementCountToBe(By by,Duration timeoutDuration,int targetSize,WebDriver driver){
+        WebDriverWait wait = new WebDriverWait(driver,timeoutDuration);
+        wait.pollingEvery(Duration.ofMillis(250));
+        wait.until((driver1 -> driver1.findElements(by).size() == targetSize));
     }
 
     /**
@@ -202,4 +206,18 @@ public class WaitHelper {
         wait.until(webdriver->driver.getWindowHandles().size()>previousSize);
     }
 
+    public static void waitForElementToHaveTextInShadowDom(List<By> by, Duration duration, WebDriver driver, String text) {
+        FluentWait<WebDriver> wait = new FluentWait<>(driver);
+        wait.pollingEvery(Duration.ofMillis(250));
+        wait.withTimeout(duration);
+        wait.until(webdriver->{
+
+            SearchContext searchContext = driver.findElement(by.getFirst());
+            for(int i = 1; i<by.size()-1;i++){
+                searchContext = searchContext.findElement(by.get(i));
+            }
+
+            return searchContext.findElement(by.getLast()).getText().equals(text);
+        });
+    }
 }
