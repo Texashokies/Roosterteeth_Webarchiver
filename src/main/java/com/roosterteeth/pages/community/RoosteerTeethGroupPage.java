@@ -4,6 +4,7 @@ import com.roosterteeth.utility.ScrollerUtility;
 import com.roosterteeth.utility.WaitHelper;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 
 import java.time.Duration;
 import java.util.HashSet;
@@ -23,6 +24,7 @@ public class RoosteerTeethGroupPage extends RoosterteethCommunityPage{
         ScrollerUtility.scrollToTopOfElement(driver.findElement(By.xpath("//div[@class='rt-halves__half half--right']")),driver);
         driver.findElement(By.xpath("//div[contains(@class,'rt-profile-tabs__tab wdio-tab-members')]")).click();
         WaitHelper.waitForPageReady(Duration.ofSeconds(5),driver);
-        archiveFollows();
+        WebElement membersCount = driver.findElement(By.xpath("(//div[@class='follows-item__count'])[1]"));
+        archiveFollows(Integer.parseInt(membersCount.getText()));
     }
 }

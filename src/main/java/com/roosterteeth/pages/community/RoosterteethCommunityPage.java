@@ -34,21 +34,20 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
             driver.get(url);
         }
 
-        //archivePosts();
+        archivePosts();
     }
 
     HashSet<String> foundUrls = new HashSet<>();
 
-    public void archiveFollows(){
-        try{
-            WaitHelper.waitForElementExistence(By.xpath("//div[@class='community-user-list__no-users-message']"),Duration.ofSeconds(5),driver);
-        }catch (TimeoutException e){
-            List<WebElement> follows = driver.findElements(By.xpath("//div[@class='community-user-list__user']"));
-            if(follows.size() >= 12){
-                WaitHelper.waitForElementExistence(By.xpath(SHOW_MORE_FOLLOWS_XPATH), Duration.ofSeconds(10),driver);
+    private static final String USER_XPATH = "//div[@class='community-user-list__user']";
+
+    public void archiveFollows(int expectedFollows){
+        if(expectedFollows != 0){
+            WaitHelper.waitForElementExistence(By.xpath(USER_XPATH),Duration.ofSeconds(5),driver);
+            List<WebElement> follows = driver.findElements(By.xpath(USER_XPATH));
+            if(follows.size() < expectedFollows){
                 List<WebElement> showMorePostsButton = driver.findElements(By.xpath(SHOW_MORE_FOLLOWS_XPATH));
                 while(!showMorePostsButton.isEmpty()){
-                    LogUtility.logInfo("Clicking show more posts button!");
                     showMorePostsButton = driver.findElements(By.xpath(SHOW_MORE_FOLLOWS_XPATH));
                     ScrollerUtility.scrollToBottomOfElement(driver.findElement(By.xpath("//div[@class='rt-halves__half half--right']")),driver);
                     try{
@@ -56,11 +55,14 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
                     }catch (StaleElementReferenceException | NoSuchElementException ex){
                         //Show button probably disappeared because of scroll.
                     }
-                    try{
-                        WaitHelper.waitForElementExistence(By.xpath(SHOW_MORE_FOLLOWS_XPATH),Duration.ofSeconds(5),driver);
-                    }catch (TimeoutException ex){
+                }
+            }
 
-                    }
+            if(foundUrls.size() != expectedFollows){
+                try{
+                    WaitHelper.waitForElementCountToBe(By.xpath(USER_XPATH),Duration.ofSeconds(5),expectedFollows,driver);
+                }catch(TimeoutException ex){
+                    //Just continue
                 }
             }
 
