@@ -41,6 +41,8 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
 
     private String archiveName;
 
+    private int pass;
+
     private String gridPath;
 
     private static final String EXTENSIONINDEX = "chrome-extension://fpeoodllldobpkbkabpblcfaogecpndd/replay/index.html";
@@ -53,13 +55,14 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
      * @param workerID The unique ID of the archive worker
      * @param archiveName What the created archive should be named.
      */
-    public ArchiveWorker(Set<String> urlsToArchive, Set<String> excludedURLS,int workerID,String archiveName,String gridPath){
+    public ArchiveWorker(Set<String> urlsToArchive, Set<String> excludedURLS,int workerID,String archiveName,int pass,String gridPath){
         this.urlsToArchive = (HashSet<String>) urlsToArchive;
         this.excludedURLS = (HashSet<String>) excludedURLS;
         this.workerID = workerID;
         foundURLS = new HashSet<>();
         completedURLS = new HashSet<>();
-        this.archiveName = archiveName + "_worker"+workerID;
+        this.archiveName = archiveName;
+        this.pass = pass;
         this.gridPath = gridPath;
     }
 
@@ -73,8 +76,6 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         return foundURLS;
     }
 
-    final String archivesPath = System.getProperty("user.dir") + File.separatorChar + "archives";
-
     /**
      * Starts the chrome driver instance and creates the archive.
      */
@@ -84,6 +85,8 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         options.addExtensions(recorderExtension);
 
         HashMap<String,Object> chromePrefs = new HashMap<>();
+
+        final String archivesPath = System.getProperty("user.dir") + File.separatorChar + "archives" + File.separatorChar + archiveName;
 
         chromePrefs.put("download.default_directory", archivesPath);
         options.setExperimentalOption("prefs",chromePrefs);
@@ -114,7 +117,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
 
         shadowRoot.findElement(By.cssSelector("section > div > div > div > button:nth-child(1)")).click();
         WebElement archiveNameInput = shadowRoot.findElement(By.cssSelector("#new-title"));
-        ((JavascriptExecutor)driver).executeScript("arguments[0].value = arguments[1]",archiveNameInput,archiveName);
+        ((JavascriptExecutor)driver).executeScript("arguments[0].value = arguments[1]",archiveNameInput,archiveName + String.format("_pass_%d_", pass) + "_worker"+workerID);
         WebElement createButton = shadowRoot.findElement(By.cssSelector("wr-modal > form > div > div > button"));
         ((JavascriptExecutor)driver).executeScript("arguments[0].click()",createButton);
     }
@@ -202,7 +205,14 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         SearchContext archiveShadowRoot = shadowRoot.findElement(By.cssSelector("wr-rec-coll-index")).getShadowRoot().findElement(By.cssSelector("wr-rec-coll-info")).getShadowRoot();
         //TODO may want to check that file doesn't already exists so proper name can be searched in wait.
         archiveShadowRoot.findElement(By.cssSelector("div > div:nth-child(4) > div > a")).click();
-        WaitHelper.waitForFileToDownload( archivesPath + File.separator + archiveName + ".wacz", Duration.ofMinutes(10));
+        final String archivesPath = System.getProperty("user.dir") + File.separatorChar + "archives" + File.separatorChar + archiveName;
+        final String archiveFileName = archiveName + String.format("_pass_%d_", pass) + "_worker"+workerID;
+        try{
+            WaitHelper.waitForFileToDownload( archivesPath + File.separator + archiveFileName + ".wacz", Duration.ofMinutes(10));
+        }catch (TimeoutException e){
+            LogUtility.logError("Failed to download file! For worker " + workerID);
+            //Still need to quite driver.
+        }
         driver.quit();
     }
 

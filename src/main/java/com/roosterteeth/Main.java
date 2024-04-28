@@ -9,6 +9,7 @@ import org.json.simple.parser.ParseException;
 
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -63,6 +64,20 @@ public class Main {
             }
         }
 
+        //Check archive name isn't already used.
+        File archiveDirectory = new File(System.getProperty("user.dir") + File.separatorChar + "archives" + File.separatorChar + archiveName);
+        if(archiveDirectory.mkdir()){
+
+        } else{
+            final String originalName = archiveName;
+            int directorySpecifier = 0;
+            while(!archiveDirectory.mkdir()){
+                archiveDirectory = new File(System.getProperty("user.dir") + File.separatorChar + "archives" + File.separatorChar + archiveName);
+                directorySpecifier++;
+                archiveName = originalName + "_"+directorySpecifier;
+            }
+        }
+
         runWorkers(urlsObject,numWorkers,archiveName,depth,gridpath);
     }
 
@@ -74,7 +89,7 @@ public class Main {
      * @param depth How deep should the archiving go
      * @throws InterruptedException Worker threads may be interrupted
      */
-    private static void runWorkers(JSONObject urlsObject,int numWorkers,String archiveName,int depth,String gridpath) throws InterruptedException {
+    private static void runWorkers(JSONObject urlsObject,int numWorkers,String archiveName,int depth,String gridpath) throws InterruptedException, IOException {
         if(urlsObject == null){
             throw new IllegalArgumentException("No urls json provided!");
         }
@@ -82,6 +97,7 @@ public class Main {
         //Split up urls by number of workers
         JSONArray seeds = (JSONArray) urlsObject.get("seeds");
         JSONArray excluded = (JSONArray) urlsObject.get("exclude");
+        JSONArray previouslyCompleted = (JSONArray) urlsObject.get("completed");
 
         if(excluded == null){
             excluded = new JSONArray();
@@ -89,6 +105,9 @@ public class Main {
 
         HashSet<String> uniqueSeed = new HashSet<>(seeds);
         HashSet<String> excludedUrls = new HashSet<>(excluded);
+        excludedUrls.addAll(previouslyCompleted);
+
+        HashSet<String> completed = new HashSet<>();
 
         int pass = 1;
 
@@ -100,7 +119,7 @@ public class Main {
             List<Thread> threads = new ArrayList<>();
             for(int i =0;i<numWorkers && i<sets.size();i++){
                 //TODO remove pass naming scheme if importing archives is possible.
-                workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName + String.format("_pass_%d_", pass),gridpath));
+                workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName,pass,gridpath));
                 Thread workerThread = new Thread(workers.getLast());
                 threads.add(workerThread);
                 workerThread.start();
@@ -116,6 +135,8 @@ public class Main {
                 unarchivedFoundPages.addAll(worker.getFoundUnarchivedURLS());
             }
 
+            completed.addAll(uniqueSeed);
+
             HashSet<String> alreadyArchivedAndExcluded = new HashSet<>();
             alreadyArchivedAndExcluded.addAll(excludedUrls);
             alreadyArchivedAndExcluded.addAll(uniqueSeed);
@@ -130,6 +151,18 @@ public class Main {
             }
             pass++;
         }while (!uniqueSeed.isEmpty() && pass<=depth);
+
+        JSONObject results = new JSONObject();
+        JSONArray seedsArray = new JSONArray();
+        seedsArray.addAll(uniqueSeed);
+        results.put("seeds", seedsArray);
+        JSONArray completedArray = new JSONArray();
+        completedArray.addAll(completed);
+        results.put("completed",completedArray);
+        results.put("exclude",excludedUrls);
+        FileWriter file = new FileWriter("output.json");
+        file.write(results.toJSONString());
+        file.close();
     }
 
     /**

@@ -15,7 +15,8 @@ Install the crx file of the Webrecorder ArchiveWebPage extension and place it in
 https://chromewebstore.google.com/detail/webrecorder-archivewebpag/fpeoodllldobpkbkabpblcfaogecpndd
 
 # Running
-
+Based on command line arguments provided when running the jar the tool will open webdriver instances and archive the pages outline in your json file.
+The archive collections will then be downloaded to archives/archivename. If you use the same name another folder will be created.
 
 ## urls.json
 The web archiver reads in what urls to run and exclude based up a json file in the same folder as the jar
@@ -24,13 +25,17 @@ and name provided in the --urls argument.
 `
 {
 "seeds": ["https://roosterteeth.com/g/user/adam"],
-"exclude": ["https://roosterteeth.com/g/user/IowaHawkins"]
+"exclude": ["https://roosterteeth.com/g/user/IowaHawkins"],
 }
 `
 
 The seeds JSON array is the list of urls to start archiving with.
 
 The exclude JSON array is the list of urls to not archive, if encountered.
+
+After a run an output.json will be created that can be provided in a --urls argument to continue the run.
+There is an additional completed JSON array with all the urls that were archived. When using output.json
+the completed urls will also be skipped.
 
 ## depth
 How deep should the archiver go. Pages on the RT site contain links to other relevant pages. Community users follow and

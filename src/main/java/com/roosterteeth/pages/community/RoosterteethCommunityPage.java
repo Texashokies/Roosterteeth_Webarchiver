@@ -131,7 +131,7 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
         }
 
 
-        LogUtility.logInfo("End if archive page!");
+        LogUtility.logInfo("End of archive page!");
     }
 
     private static final String COMMENT_MODAL_XPATH = "//div[contains(@class,'modal-post-details')]";
