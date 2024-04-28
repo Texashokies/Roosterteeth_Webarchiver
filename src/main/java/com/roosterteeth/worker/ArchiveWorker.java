@@ -80,7 +80,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
      */
     private void startArchive(){
         ChromeOptions options = new ChromeOptions();
-        File recorderExtension = new File("src/main/resources/extensions/Webrecorder-ArchiveWeb-page.crx");
+        File recorderExtension = new File("extensions/Webrecorder-ArchiveWeb-page.crx");
         options.addExtensions(recorderExtension);
 
         HashMap<String,Object> chromePrefs = new HashMap<>();

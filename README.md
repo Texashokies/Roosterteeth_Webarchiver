@@ -11,5 +11,5 @@ Make sure JDK 21 is installed
 
 Make sure Maven is up to date
 
-Install the crx file of the Webrecorder ArchiveWebPage extension and place it in src/main/resources/extensions
+Install the crx file of the Webrecorder ArchiveWebPage extension and place it in extensions folder same level as jar
 https://chromewebstore.google.com/detail/webrecorder-archivewebpag/fpeoodllldobpkbkabpblcfaogecpndd
