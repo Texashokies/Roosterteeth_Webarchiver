@@ -38,6 +38,7 @@ build/
 ### Mac OS ###
 .DS_Store
 /.idea/
-/src/main/resources/extensions/
+/extensions/
 /.idea/
 /archives/
+/out/
