@@ -18,6 +18,11 @@ https://chromewebstore.google.com/detail/webrecorder-archivewebpag/fpeoodllldobp
 Based on command line arguments provided when running the jar the tool will open webdriver instances and archive the pages outline in your json file.
 The archive collections will then be downloaded to archives/archivename. If you use the same name another folder will be created.
 
+# Shutting Down
+The tool will attempt to shut down gracefully if terminated while running. All running workers will save their archives
+and output a json following the same urls.json format to allow for starting runs back up again. There will also be an output.json
+created that should have the combined values of each individual workers output.json.
+
 ## urls.json
 The web archiver reads in what urls to run and exclude based up a json file in the same folder as the jar
 and name provided in the --urls argument.
@@ -26,6 +31,8 @@ and name provided in the --urls argument.
 {
 "seeds": ["https://roosterteeth.com/g/user/adam"],
 "exclude": ["https://roosterteeth.com/g/user/IowaHawkins"],
+"completed": ["https://roosterteeth.com/g/user/Gearskiller94"],
+"failed": ["https://roosterteeth.com/g/user/ClusterStorm97"],
 }
 `
 
@@ -33,9 +40,13 @@ The seeds JSON array is the list of urls to start archiving with.
 
 The exclude JSON array is the list of urls to not archive, if encountered.
 
-After a run an output.json will be created that can be provided in a --urls argument to continue the run.
-There is an additional completed JSON array with all the urls that were archived. When using output.json
-the completed urls will also be skipped.
+The completed and failed JSON arrays only show on tool generated output JSONs that can be reused.
+
+The completed array is a list of urls that were successfully archived. The URLs in the array will not be archived.
+
+The failed array is a list of urls that failed to archive (encountered an error or were archiving on shutdown). The URLS
+in the array will be archived.
+
 
 ## depth
 How deep should the archiver go. Pages on the RT site contain links to other relevant pages. Community users follow and

@@ -1,5 +1,6 @@
 package com.roosterteeth;
 
+import com.roosterteeth.hooks.OutputSafetyHook;
 import com.roosterteeth.hooks.WorkersShutdownHook;
 import com.roosterteeth.utility.LogUtility;
 import com.roosterteeth.worker.ArchiveWorker;
@@ -12,7 +13,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -21,8 +21,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 public class Main {
     public static void main(String[] args) throws IOException, ParseException, InterruptedException {
 
@@ -84,7 +82,7 @@ public class Main {
             }
         }catch(NoSuchFileException e){
             //Directory does not exist.
-            archiveDirectory.mkdir();
+            archiveDirectory.mkdirs();
         }
 
         runWorkers(urlsObject,numWorkers,archiveName,depth,gridpath);
@@ -106,6 +104,7 @@ public class Main {
         //Split up urls by number of workers
         JSONArray seeds = (JSONArray) urlsObject.get("seeds");
         JSONArray excluded = (JSONArray) urlsObject.get("exclude");
+        final JSONArray originalExcluded = (JSONArray) urlsObject.get("exclude");
         JSONArray previouslyCompleted = (JSONArray) urlsObject.get("completed");
         JSONArray previouslyFailed = (JSONArray) urlsObject.get("failed");
 
@@ -134,8 +133,8 @@ public class Main {
             List<ArchiveWorker> workers = new ArrayList<>();
             List<Thread> threads = new ArrayList<>();
 
-//            WorkersShutdownHook shutdownHook = new WorkersShutdownHook(workers,threads,completed,excludedUrls);
-//            Runtime.getRuntime().addShutdownHook(shutdownHook);
+            WorkersShutdownHook shutdownHook = new WorkersShutdownHook(numWorkers,archiveName,completed,originalExcluded);
+            Runtime.getRuntime().addShutdownHook(shutdownHook);
 
             for(int i =0;i<numWorkers && i<sets.size();i++){
                 //TODO remove pass naming scheme if importing archives is possible.
@@ -170,26 +169,37 @@ public class Main {
                 }
             }
             pass++;
-            //Runtime.getRuntime().removeShutdownHook(shutdownHook);
+            Runtime.getRuntime().removeShutdownHook(shutdownHook);
         }while (!uniqueSeed.isEmpty() && pass<=depth);
+        LogUtility.logInfo("Finished archiving all URLS. Do not terminate program!");
+        OutputSafetyHook outputSafetyHook = new OutputSafetyHook(uniqueSeed,completed,failed,excludedUrls,archiveName);
+        Runtime.getRuntime().addShutdownHook(outputSafetyHook);
 
         //TODO need to do something about shutdown hooks so this is also safe if closed.
         JSONObject results = new JSONObject();
         JSONArray seedsArray = new JSONArray();
         seedsArray.addAll(uniqueSeed);
         results.put("seeds", seedsArray);
+
         JSONArray completedArray = new JSONArray();
         completedArray.addAll(completed);
+        results.put("completed",completedArray);
+
+        JSONArray excludedArray = new JSONArray();
+        excludedArray.addAll(excludedUrls);
+        results.put("exclude",excludedArray);
+
         JSONArray failedArray = new JSONArray();
         failedArray.addAll(failed);
-        results.put("completed",completedArray);
-        results.put("exclude",excludedUrls);
         results.put("failed",failedArray);
 
-        //Check if output.json exists
-        FileWriter file = new FileWriter( System.getProperty("user.dir") + File.separatorChar + "archives" + File.separatorChar + archiveName + File.separatorChar + "output.json");
+        final String fileName = System.getProperty("user.dir") + File.separatorChar + "archives" + File.separatorChar + archiveName + File.separatorChar + "output.json";
+
+        FileWriter file = new FileWriter(fileName);
         file.write(results.toJSONString());
         file.close();
+        Runtime.getRuntime().removeShutdownHook(outputSafetyHook);
+        LogUtility.logInfo("Created output.json at " + fileName);
     }
 
     /**
@@ -213,6 +223,4 @@ public class Main {
         }
         return sets;
     }
-
-    //TODO add shutdown hook that will save progress of workers.
 }

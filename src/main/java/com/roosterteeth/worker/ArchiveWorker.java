@@ -190,7 +190,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
 
 
         int urlIndex = 1;
-        WorkerShutdownHook shutdownHook = new WorkerShutdownHook(this,archiveIndexHandle);
+        WorkerShutdownHook shutdownHook = new WorkerShutdownHook(this,archiveIndexHandle,archiveName);
         Runtime.getRuntime().addShutdownHook(shutdownHook);
         //Will continue until done with last url. Ends archiving.
         for(String urlToArchive:urlsToArchive){
@@ -245,5 +245,19 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
     }
 
 
+    /**
+     * Gets the urls this worker is excluded from archiving
+     * @return The set of urls the worker is excluded from archiving
+     */
+    public HashSet<String> getExcludedURLS() {
+        return excludedURLS;
+    }
 
+    /**
+     * Gets the id of the worker
+     * @return The worker ID
+     */
+    public int getID() {
+        return workerID;
+    }
 }
