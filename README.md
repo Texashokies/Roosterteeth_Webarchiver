@@ -18,13 +18,17 @@ https://chromewebstore.google.com/detail/webrecorder-archivewebpag/fpeoodllldobp
 Based on command line arguments provided when running the jar the tool will open webdriver instances and archive the pages outline in your json file.
 The archive collections will then be downloaded to archives/archivename. If you use the same name another folder will be created.
 
+Using your terminal java -jar Roosterteeth_Webarchiver.jar --urls "relative path to urls.json" --argument1 ...
+
+Use --help to learn about other arguments or read below
+
 # Shutting Down
 The tool will attempt to shut down gracefully if terminated while running. All running workers will save their archives
 and output a json following the same urls.json format to allow for starting runs back up again. There will also be an output.json
 created that should have the combined values of each individual workers output.json.
 
 ## urls.json
-The web archiver reads in what urls to run and exclude based up a json file in the same folder as the jar
+The web archiver reads in what urls to run and exclude based up a json file in the same folder as the jar. Does not need to be named urls.json
 and name provided in the --urls argument.
 
 `

@@ -31,7 +31,6 @@ public class WorkerShutdownHook extends Thread {
         LogUtility.logInfo("Worker has archived: " + worker.hasArchived());
         if(!worker.hasArchived()){
             LogUtility.logInfo("Worker shutting down...");
-            LogUtility.logInfo("Worker completed: " + worker.getArchivedURLS().toString());
             worker.switchToHandle(archiveIndexHandle);
             worker.endArchiving();
 
