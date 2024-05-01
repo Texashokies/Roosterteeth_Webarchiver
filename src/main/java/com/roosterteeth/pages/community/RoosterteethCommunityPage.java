@@ -68,7 +68,14 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
 
             List<WebElement> userNames = driver.findElements(By.xpath("//div[@class='community-user-list__user-username']"));
             for(WebElement userName: userNames){
-                foundUrls.add("https://roosterteeth.com/g/user/" + userName.getText());
+                foundUrls.add("https://roosterteeth.com/g/user/" + userName.getText().replace(" ","%20"));
+            }
+
+            //Additional wait just in case for archiving extension
+            try{
+                Thread.sleep(Duration.ofSeconds(20));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
@@ -105,11 +112,11 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
 
         List<WebElement> postUserNames = driver.findElements(By.xpath("//div[@class='community-feed__post-username']"));
         for(WebElement poster: postUserNames){
-            foundUrls.add("https://roosterteeth.com/g/user/" + poster.getText().replace("\\s+",""));
+            foundUrls.add("https://roosterteeth.com/g/user/" + poster.getText().replace(" ","%20"));
         }
         List<WebElement> repostUserNames = driver.findElements(By.xpath("//span[@class='community-feed__marker-username']"));
         for(WebElement reposter:repostUserNames){
-            foundUrls.add("https://roosterteeth.com/g/user/" + reposter.getText().replace("\\s+",""));
+            foundUrls.add("https://roosterteeth.com/g/user/" + reposter.getText().replace(" ","%20"));
         }
 
 
@@ -130,8 +137,13 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
             archivePostComments(commentCount);
         }
 
-
-        LogUtility.logInfo("End of archive page!");
+        //Additional wait just in case for archiving extension
+        try{
+            Thread.sleep(Duration.ofSeconds(20));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        LogUtility.logInfo("Finished archiving posts");
     }
 
     private static final String COMMENT_MODAL_XPATH = "//div[contains(@class,'modal-post-details')]";

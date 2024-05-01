@@ -18,6 +18,10 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class Main {
     public static void main(String[] args) throws IOException, ParseException, InterruptedException {
@@ -199,6 +203,8 @@ public class Main {
 
         int pass = 1;
 
+        ExecutorService pool = Executors.newFixedThreadPool(numWorkers);
+
         do{
             LogUtility.logInfo(String.format("----------------Pass %d: num urls %d----------------", pass,uniqueSeed.size()));
             List<HashSet<String>> sets = partitionSet(uniqueSeed,numWorkers);
@@ -209,18 +215,23 @@ public class Main {
             WorkersShutdownHook shutdownHook = new WorkersShutdownHook(numWorkers,archiveName,completed,originalExcluded);
             Runtime.getRuntime().addShutdownHook(shutdownHook);
 
+            List<Future> futures = new ArrayList<>();
             for(int i =0;i<numWorkers && i<sets.size();i++){
                 //TODO remove pass naming scheme if importing archives is possible.
                 workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName,pass,gridpath));
                 Thread workerThread = new Thread(workers.getLast());
-                threads.add(workerThread);
-                workerThread.start();
+                futures.add(pool.submit(workerThread));
             }
 
             //Wait for all workers to end
-            for(Thread thread:threads){
-                thread.join();
+            for(Future f : futures){
+                try {
+                    f.get();
+                } catch (ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
             }
+            LogUtility.logInfo("Workers have finished!");
             //get results from workers
             HashSet<String> unarchivedFoundPages = new HashSet<>();
             for(ArchiveWorker worker: workers){
@@ -244,11 +255,11 @@ public class Main {
             pass++;
             Runtime.getRuntime().removeShutdownHook(shutdownHook);
         }while (!uniqueSeed.isEmpty() && pass<=depth);
+        pool.shutdown();
         LogUtility.logInfo("Finished archiving all URLS. Do not terminate program!");
         OutputSafetyHook outputSafetyHook = new OutputSafetyHook(uniqueSeed,completed,failed,excludedUrls,archiveName);
         Runtime.getRuntime().addShutdownHook(outputSafetyHook);
 
-        //TODO need to do something about shutdown hooks so this is also safe if closed.
         JSONObject results = new JSONObject();
         JSONArray seedsArray = new JSONArray();
         seedsArray.addAll(uniqueSeed);
