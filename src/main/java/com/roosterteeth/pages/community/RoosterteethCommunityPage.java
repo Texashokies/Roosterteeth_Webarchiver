@@ -70,6 +70,13 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
             for(WebElement userName: userNames){
                 foundUrls.add("https://roosterteeth.com/g/user/" + userName.getText().replace(" ","%20"));
             }
+
+            //Additional wait just in case for archiving extension
+            try{
+                Thread.sleep(Duration.ofSeconds(20));
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -130,8 +137,13 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
             archivePostComments(commentCount);
         }
 
-
-        LogUtility.logInfo("End of archive page!");
+        //Additional wait just in case for archiving extension
+        try{
+            Thread.sleep(Duration.ofSeconds(20));
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        LogUtility.logInfo("Finished archiving posts");
     }
 
     private static final String COMMENT_MODAL_XPATH = "//div[contains(@class,'modal-post-details')]";

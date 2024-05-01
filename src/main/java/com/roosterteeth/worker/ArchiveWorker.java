@@ -230,7 +230,6 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         WebElement archivePage = driver.findElement(By.tagName(ARCHIVEPAGESELECTOR));
         SearchContext shadowRoot = archivePage.getShadowRoot();
         SearchContext archiveShadowRoot = shadowRoot.findElement(By.cssSelector("wr-rec-coll-index")).getShadowRoot().findElement(By.cssSelector("wr-rec-coll-info")).getShadowRoot();
-        //TODO may want to check that file doesn't already exists so proper name can be searched in wait.
         archiveShadowRoot.findElement(By.cssSelector("div > div:nth-child(4) > div > a")).click();
         final String archivesPath = System.getProperty("user.dir") + File.separatorChar + "archives" + File.separatorChar + archiveName;
         final String archiveFileName = archiveName + String.format("_pass_%d_", pass) + "_worker"+workerID;
