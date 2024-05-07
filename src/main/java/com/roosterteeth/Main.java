@@ -188,8 +188,11 @@ public class Main {
         if(excluded == null){
             excluded = new JSONArray();
         }
+        HashSet<String> uniqueSeed = new HashSet<>();
+        if(seeds != null){
+            uniqueSeed.addAll(seeds);
+        }
 
-        HashSet<String> uniqueSeed = new HashSet<>(seeds);
         if(previouslyFailed != null){
             uniqueSeed.addAll(previouslyFailed);
         }
