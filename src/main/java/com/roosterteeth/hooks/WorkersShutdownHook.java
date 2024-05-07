@@ -6,6 +6,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.openqa.selenium.TimeoutException;
 
 import java.io.*;
 import java.time.Duration;
@@ -40,7 +41,12 @@ public class WorkersShutdownHook extends Thread {
         for(int i = 0; i < numWorkers; i++) {
             final String outputPath = System.getProperty("user.dir") + File.separatorChar + "archives"
                     + File.separatorChar + archiveName + File.separatorChar + "output_worker_"+ i + ".json";
-            WaitHelper.waitForFileToDownload(outputPath, Duration.ofSeconds(10));
+            try{
+                WaitHelper.waitForFileToDownload(outputPath, Duration.ofMinutes(2));
+            }catch (TimeoutException e){
+                e.printStackTrace();
+                LogUtility.logError("Failed to get output file for " + outputPath);
+            }
             outputFiles.add(new File(outputPath));
         }
 
@@ -56,7 +62,7 @@ public class WorkersShutdownHook extends Thread {
                 failed.addAll((JSONArray)output.get("failed"));
                 seeds.addAll((JSONArray)output.get("seeds"));
             } catch (IOException | ParseException e) {
-                throw new RuntimeException(e);
+                continue;
             }
         }
 
