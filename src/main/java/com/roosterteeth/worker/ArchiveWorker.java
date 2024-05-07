@@ -200,6 +200,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
                 try{
                     page.archivePage();
                 }catch (WebDriverException e){
+                    e.printStackTrace();
                     failedURLS.add(urlToArchive);
                     continue;
                 }
