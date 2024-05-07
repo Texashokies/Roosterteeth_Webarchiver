@@ -175,18 +175,42 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
                 for (int i = 0; i < showReplies.size(); i++) {
                     WebElement showReplyButton = showReplies.get(i);
                     Actions actions = new Actions(driver);
+                    String windowHandle = driver.getWindowHandle();
                     try {
-                        actions.scrollToElement(showReplyButton).build().perform();
+                        ScrollerUtility.scrollIntoMiddle(showReplyButton,driver);
                         showReplyButton.click();
+                        if(driver.getWindowHandles().size() > 2){
+                            driver.switchTo().window((String) driver.getWindowHandles().toArray()[2]);
+                            driver.close();
+                            driver.switchTo().window(windowHandle);
+                            showReplyButton.click();
+                        }
                     } catch (StaleElementReferenceException e) {
                         showReplies = driver.findElements(By.xpath("//button[@class='comment-replies-toggle']"));
                         i--;
+                    }catch (ElementClickInterceptedException e){
+                        actions.scrollToElement(showReplyButton).build().perform();
+                        showReplyButton.click();
                     }
                 }
             }
             List<WebElement> commenters = driver.findElements(By.xpath("//h6/a[not(contains(@class,'comment__timeago '))]"));
-            for (WebElement commenter:commenters){
-                foundUrls.add(commenter.getAttribute("href"));
+            for (int i = 0; i < commenters.size(); i++) {
+                WebElement commenter = commenters.get(i);
+                try{
+                    foundUrls.add(commenter.getAttribute("href"));
+                }catch (StaleElementReferenceException e){
+                    commenters = driver.findElements(By.xpath("//h6/a[not(contains(@class,'comment__timeago '))]"));
+                    try{
+                        foundUrls.add(commenters.get(i).getAttribute("href"));
+                    }catch (IndexOutOfBoundsException indexOutOfBoundsException){
+                        commenters = driver.findElements(By.xpath("//h6/a[not(contains(@class,'comment__timeago '))]"));
+                        i = 0;
+                    }
+                } catch (IndexOutOfBoundsException e){
+                    commenters = driver.findElements(By.xpath("//h6/a[not(contains(@class,'comment__timeago '))]"));
+                    i = 0;
+                }
             }
         }
 
@@ -195,7 +219,12 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
         WebElement closeButton = driver.findElement(By.xpath("//span[contains(@class,'modal-close')]"));
         Actions actions = new Actions(driver);
         actions.scrollToElement(closeButton).click().build().perform();
-        WaitHelper.waitForElementNotExist(By.xpath(COMMENT_MODAL_XPATH),Duration.ofSeconds(5),driver);
+        try{
+            WaitHelper.waitForElementNotExist(By.xpath(COMMENT_MODAL_XPATH),Duration.ofSeconds(5),driver);
+        }catch (TimeoutException e){
+            e.printStackTrace();
+        }
+
     }
 
     @Override
