@@ -81,6 +81,10 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
     String postsURL;
     public void archivePosts(){
         postsURL = driver.getCurrentUrl();
+
+        //Removes a potential blocking element
+        ((JavascriptExecutor)driver).executeScript("document.querySelectorAll(\".onetrust-pc-dark-filter\").forEach(e => e.remove())\n");
+
         //Get list of all posts
         try{
             WaitHelper.waitForElementExistence(By.xpath(POST_XPATH),Duration.ofSeconds(5),driver);
