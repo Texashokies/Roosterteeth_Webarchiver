@@ -73,7 +73,7 @@ public class WorkersShutdownHook extends Thread {
         if(excluded != null) {
             JSONArray excludedArray = new JSONArray();
             excludedArray.addAll(excluded);
-            combinedOutput.put("excluded", excludedArray);
+            combinedOutput.put("exclude", excludedArray);
         }
         if(completed != null) {
             JSONArray completedArray = new JSONArray();

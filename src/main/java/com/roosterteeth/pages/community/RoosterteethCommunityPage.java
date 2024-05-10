@@ -9,10 +9,8 @@ import org.openqa.selenium.*;
 import org.openqa.selenium.interactions.Actions;
 
 import java.time.Duration;
-import java.util.HashSet;
-import java.util.List;
+import java.util.*;
 import java.util.NoSuchElementException;
-import java.util.Set;
 
 public class RoosterteethCommunityPage extends RoosterteethPage {
 
@@ -80,8 +78,9 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
         }
     }
 
+    String postsURL;
     public void archivePosts(){
-
+        postsURL = driver.getCurrentUrl();
         //Get list of all posts
         try{
             WaitHelper.waitForElementExistence(By.xpath(POST_XPATH),Duration.ofSeconds(5),driver);
@@ -229,7 +228,19 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
 
     @Override
     public Set<String> getFoundUnarchivedURLS() {
-        return foundUrls;
+        HashSet<String> uniqueFoundUrls = new HashSet<>();
+        for(String url: foundUrls){
+            boolean isPoster;
+            if(url.charAt(url.length()-1) == '/'){
+                isPoster = url.equals(postsURL);
+            } else{
+                isPoster = (url + "/").equals(postsURL);
+            }
+            if(!excludedURLS.contains(url) && !isPoster){
+                uniqueFoundUrls.add(url);
+            }
+        }
+        return uniqueFoundUrls;
     }
 
 }

@@ -8,7 +8,6 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.openqa.selenium.InvalidArgumentException;
 
 import java.io.File;
 import java.io.FileReader;
@@ -184,24 +183,23 @@ public class Main {
         final JSONArray originalExcluded = (JSONArray) urlsObject.get("exclude");
         JSONArray previouslyCompleted = (JSONArray) urlsObject.get("completed");
         JSONArray previouslyFailed = (JSONArray) urlsObject.get("failed");
-
-        if(excluded == null){
-            excluded = new JSONArray();
+        if(seeds == null && previouslyFailed == null){
+            throw new IllegalStateException("No seeds or failed urls in provided json!");
         }
+
         HashSet<String> uniqueSeed = new HashSet<>();
-        if(seeds != null){
-            uniqueSeed.addAll(seeds);
-        }
+        HashSet<String> excludedUrls = removeTrailingSlash(excluded);
 
-        if(previouslyFailed != null){
-            uniqueSeed.addAll(previouslyFailed);
-        }
-        HashSet<String> excludedUrls = new HashSet<>(excluded);
-        if(previouslyCompleted != null){
-            excludedUrls.addAll(previouslyCompleted);
-        }
+        excludedUrls.addAll(removeTrailingSlash(previouslyCompleted));
 
-        HashSet<String> completed = new HashSet<>();
+        filterSeeds(seeds, uniqueSeed, excludedUrls);
+
+        filterSeeds(previouslyFailed, uniqueSeed, excludedUrls);
+
+        //Keep continuity of completed by adding all completed from json to this output set.
+
+
+        HashSet<String> completed = removeTrailingSlash(previouslyCompleted);;
         HashSet<String> failed = new HashSet<>();
 
         int pass = 1;
@@ -287,6 +285,43 @@ public class Main {
         file.close();
         Runtime.getRuntime().removeShutdownHook(outputSafetyHook);
         LogUtility.logInfo("Created output.json at " + fileName);
+    }
+
+    /**
+     * Removes any trailing / from urls. To make uniform with found urls
+     * @param urls The urls to remove trailing /
+     * @return Hash set of urls with trailing / removed
+     */
+    private static HashSet<String> removeTrailingSlash(ArrayList<String> urls) {
+        HashSet<String> processedUrls = new HashSet<>();
+        if(urls != null){
+            for(String url: urls){
+                if(url.charAt(url.length()-1) == '/'){
+                    url = url.substring(0, url.length()-1);
+                }
+                processedUrls.add(url);
+            }
+        }
+        return processedUrls;
+    }
+
+    /**
+     * Filters excluded seeds from list of seeds
+     * @param seeds The list of seeds
+     * @param uniqueSeed The hash set to add the seeds to
+     * @param excludedUrls The seeds to exclude
+     */
+    private static void filterSeeds(JSONArray seeds, HashSet<String> uniqueSeed, HashSet<String> excludedUrls) {
+        if(seeds != null){
+            for(String seed: (ArrayList<String>)seeds){
+                if(seed.charAt(seed.length()-1) == '/'){
+                    seed = seed.substring(0, seed.length()-1);
+                }
+                if(!excludedUrls.contains(seed)){
+                    uniqueSeed.add(seed);
+                }
+            }
+        }
     }
 
     /**
