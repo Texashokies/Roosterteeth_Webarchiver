@@ -32,7 +32,7 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
             driver.get(url);
         }
 
-        archivePosts();
+        //archivePosts();
     }
 
     HashSet<String> foundUrls = new HashSet<>();
@@ -43,9 +43,11 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
         if(expectedFollows != 0){
             WaitHelper.waitForElementExistence(By.xpath(USER_XPATH),Duration.ofSeconds(5),driver);
             List<WebElement> follows = driver.findElements(By.xpath(USER_XPATH));
+
             if(follows.size() < expectedFollows){
+                WaitHelper.waitForElementExistence(By.xpath(SHOW_MORE_FOLLOWS_XPATH),Duration.ofSeconds(5),driver);
                 List<WebElement> showMorePostsButton = driver.findElements(By.xpath(SHOW_MORE_FOLLOWS_XPATH));
-                while(!showMorePostsButton.isEmpty()){
+                while (follows.size() < expectedFollows && !showMorePostsButton.isEmpty()){
                     showMorePostsButton = driver.findElements(By.xpath(SHOW_MORE_FOLLOWS_XPATH));
                     ScrollerUtility.scrollToBottomOfElement(driver.findElement(By.xpath("//div[@class='rt-halves__half half--right']")),driver);
                     try{
@@ -53,14 +55,12 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
                     }catch (StaleElementReferenceException | NoSuchElementException ex){
                         //Show button probably disappeared because of scroll.
                     }
-                }
-            }
+                    follows = driver.findElements(By.xpath(USER_XPATH));
+                    try{
+                        WaitHelper.waitForElementExistence(By.xpath(SHOW_MORE_FOLLOWS_XPATH),Duration.ofSeconds(5),driver);
+                    }catch(TimeoutException ex){
 
-            if(foundUrls.size() != expectedFollows){
-                try{
-                    WaitHelper.waitForElementCountToBe(By.xpath(USER_XPATH),Duration.ofSeconds(5),expectedFollows,driver);
-                }catch(TimeoutException ex){
-                    //Just continue
+                    }
                 }
             }
 
