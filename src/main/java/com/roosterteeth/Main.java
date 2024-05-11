@@ -31,6 +31,7 @@ public class Main {
         String archiveName = "roosterteeth-site-archive";
         int depth = Integer.MAX_VALUE;
         String gridpath = null;
+        boolean staging = false;
         //Process arguments
         if(Arrays.asList(args).contains("--h") || Arrays.asList(args).contains("--help")) {
             if(args.length > 1) {
@@ -86,6 +87,10 @@ public class Main {
                                 "\n" +
                                 "An archive will be created for each depth.");
                         break;
+                    case "staging":
+                        System.out.println("Help: --staging");
+                        System.out.println("If true urls will be converted to staging.roosterteeth.com urls." +
+                                " If false urls found will most likely be roosterteeth.com urls even if found on staging.roosterteeth.com");
                     case "help":
                         System.out.println("Help: --h or --help");
                         System.out.println("Displays quick summary of all available arguments if not provided an argument." +
@@ -98,6 +103,7 @@ public class Main {
                 System.out.println("--urls: The relative path (path from directory jar file is in) to the json defining urls to archive");
                 System.out.println("--workers: The number of workers (threads) to use archiving");
                 System.out.println("--name: The name of the folder the created archives will be under in the archives folder. If name is already used a number will be added at end");
+                System.out.println("--staging: True or false, if true will use staging.roosterteeth.com for urls instead of roosterteeth.com");
                 System.out.println("--depth: How many passes of archiving found urls. Value of 1 means just archive urls found in specified json.");
                 System.out.println("--help or --h \"argument\". Get more detailed message on argument.");
             }
@@ -128,6 +134,9 @@ public class Main {
                     if(depth<=0){
                         throw new IllegalArgumentException("Provided depth is 0 or negative");
                     }
+                    break;
+                case "--staging":
+                    staging = Boolean.parseBoolean(args[i+1]);
                     break;
                 case "--help":
                 case "--h":
@@ -161,7 +170,7 @@ public class Main {
             archiveDirectory.mkdirs();
         }
 
-        runWorkers(urlsObject,numWorkers,archiveName,depth,gridpath);
+        runWorkers(urlsObject,numWorkers,archiveName,depth,gridpath,staging);
     }
 
     /**
@@ -170,9 +179,11 @@ public class Main {
      * @param numWorkers The number of workers (threads) to use
      * @param archiveName The name of the archive
      * @param depth How deep should the archiving go
+     * @param gridpath Path to selenium grid to run workers on
+     * @param staging Flag for using staging.roosterteeth.com urls
      * @throws InterruptedException Worker threads may be interrupted
      */
-    private static void runWorkers(JSONObject urlsObject,int numWorkers,String archiveName,int depth,String gridpath) throws InterruptedException, IOException {
+    private static void runWorkers(JSONObject urlsObject,int numWorkers,String archiveName,int depth,String gridpath,boolean staging) throws InterruptedException, IOException {
         if(urlsObject == null){
             throw new IllegalArgumentException("No urls json provided!");
         }
@@ -188,18 +199,18 @@ public class Main {
         }
 
         HashSet<String> uniqueSeed = new HashSet<>();
-        HashSet<String> excludedUrls = removeTrailingSlash(excluded);
+        HashSet<String> excludedUrls = removeTrailingSlash(excluded,staging);
 
-        excludedUrls.addAll(removeTrailingSlash(previouslyCompleted));
+        excludedUrls.addAll(removeTrailingSlash(previouslyCompleted,staging));
 
-        filterSeeds(seeds, uniqueSeed, excludedUrls);
+        filterSeeds(seeds, uniqueSeed, excludedUrls,staging);
 
-        filterSeeds(previouslyFailed, uniqueSeed, excludedUrls);
+        filterSeeds(previouslyFailed, uniqueSeed, excludedUrls,staging);
 
         //Keep continuity of completed by adding all completed from json to this output set.
 
 
-        HashSet<String> completed = removeTrailingSlash(previouslyCompleted);;
+        HashSet<String> completed = removeTrailingSlash(previouslyCompleted,staging);
         HashSet<String> failed = new HashSet<>();
 
         int pass = 1;
@@ -219,7 +230,7 @@ public class Main {
             List<Future> futures = new ArrayList<>();
             for(int i =0;i<numWorkers && i<sets.size();i++){
                 //TODO remove pass naming scheme if importing archives is possible.
-                workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName,pass,gridpath));
+                workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName,pass,gridpath,staging));
                 Thread workerThread = new Thread(workers.getLast());
                 futures.add(pool.submit(workerThread));
             }
@@ -290,14 +301,18 @@ public class Main {
     /**
      * Removes any trailing / from urls. To make uniform with found urls
      * @param urls The urls to remove trailing /
+     * @param staging If urls should be staging.roosterteeth.com
      * @return Hash set of urls with trailing / removed
      */
-    private static HashSet<String> removeTrailingSlash(ArrayList<String> urls) {
+    private static HashSet<String> removeTrailingSlash(ArrayList<String> urls,boolean staging) {
         HashSet<String> processedUrls = new HashSet<>();
         if(urls != null){
             for(String url: urls){
                 if(url.charAt(url.length()-1) == '/'){
                     url = url.substring(0, url.length()-1);
+                }
+                if(staging && !url.contains("staging.roosterteeth.com")){
+                    url = url.replace("roosterteeth.com","staging.roosterteeth.com");
                 }
                 processedUrls.add(url);
             }
@@ -310,12 +325,16 @@ public class Main {
      * @param seeds The list of seeds
      * @param uniqueSeed The hash set to add the seeds to
      * @param excludedUrls The seeds to exclude
+     * @param staging If urls should be staging.roosterteeth.com
      */
-    private static void filterSeeds(JSONArray seeds, HashSet<String> uniqueSeed, HashSet<String> excludedUrls) {
+    private static void filterSeeds(JSONArray seeds, HashSet<String> uniqueSeed, HashSet<String> excludedUrls,boolean staging) {
         if(seeds != null){
             for(String seed: (ArrayList<String>)seeds){
                 if(seed.charAt(seed.length()-1) == '/'){
                     seed = seed.substring(0, seed.length()-1);
+                }
+                if(staging && !seed.contains("staging.roosterteeth.com")){
+                    seed = seed.replace("roosterteeth.com","staging.roosterteeth.com");
                 }
                 if(!excludedUrls.contains(seed)){
                     uniqueSeed.add(seed);
