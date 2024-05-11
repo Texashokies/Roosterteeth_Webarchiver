@@ -32,7 +32,7 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
             driver.get(url);
         }
 
-        //archivePosts();
+        archivePosts();
     }
 
     HashSet<String> foundUrls = new HashSet<>();
