@@ -17,9 +17,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 /**
  * A class for an archive worker, that owns an instance of chrome driver.
@@ -44,6 +42,8 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
 
     private String gridPath;
 
+    private boolean staging;
+
     private static final String EXTENSIONINDEX = "chrome-extension://fpeoodllldobpkbkabpblcfaogecpndd/replay/index.html";
     private static final String ARCHIVEPAGESELECTOR = "archive-web-page-app";
 
@@ -53,8 +53,9 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
      * @param excludedURLS Set of urls the archive worker should not archive or add to lists for archiving
      * @param workerID The unique ID of the archive worker
      * @param archiveName What the created archive should be named.
+     * @param staging If true will use staging.roosterteeth.com instead of roosterteeth.com
      */
-    public ArchiveWorker(Set<String> urlsToArchive, Set<String> excludedURLS,int workerID,String archiveName,int pass,String gridPath){
+    public ArchiveWorker(Set<String> urlsToArchive, Set<String> excludedURLS,int workerID,String archiveName,int pass,String gridPath,boolean staging){
         this.urlsToArchive = (HashSet<String>) urlsToArchive;
         this.excludedURLS = (HashSet<String>) excludedURLS;
         this.workerID = workerID;
@@ -64,6 +65,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         this.pass = pass;
         this.gridPath = gridPath;
         failedURLS = new HashSet<>();
+        this.staging = staging;
     }
 
     @Override
@@ -78,6 +80,16 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
 
     @Override
     public HashSet<String> getFoundUnarchivedURLS() {
+        if(staging){
+            List<String> processedUrls = new ArrayList<>();
+            for(String url : foundURLS){
+                if(!url.contains("staging.roosterteeth.com")){
+                    processedUrls.add(url.replace("roosterteeth.com","staging.roosterteeth.com"));
+                }
+            }
+            foundURLS.clear();
+            foundURLS.addAll(processedUrls);
+        }
         return foundURLS;
     }
 
