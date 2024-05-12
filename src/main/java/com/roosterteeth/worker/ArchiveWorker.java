@@ -6,6 +6,8 @@ import com.roosterteeth.pages.RoosterteethPage;
 import com.roosterteeth.pages.RoosterteethPageFactory;
 import com.roosterteeth.utility.LogUtility;
 import com.roosterteeth.utility.WaitHelper;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
@@ -13,6 +15,8 @@ import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.remote.RemoteWebDriver;
 
 import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -224,6 +228,35 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         }
         driver.switchTo().window(archiveIndexHandle);
         endArchiving();
+
+        JSONObject results = new JSONObject();
+        JSONArray seedsArray = new JSONArray();
+        seedsArray.addAll(getFoundUnarchivedURLS());
+
+        JSONArray completed = new JSONArray();
+        completed.addAll(getFoundUnarchivedURLS());
+
+        JSONArray failedArray = new JSONArray();
+        failedArray.addAll(getFailedURLS());
+
+        JSONArray excludedArray = new JSONArray();
+        excludedArray.addAll(getExcludedURLS());
+
+        results.put("seeds", seedsArray);
+        results.put("completed", completed);
+        results.put("exclude", excludedArray);
+        results.put("failed", failedArray);
+
+        FileWriter file = null;
+        try {
+            file = new FileWriter( System.getProperty("user.dir") + File.separatorChar + "archives"
+                    + File.separatorChar + archiveName + File.separatorChar + "output_worker_"+ getID() + ".json");
+            file.write(results.toJSONString());
+            file.close();
+        } catch (IOException e) {
+            LogUtility.logError("Error writing to file: " + e.getMessage());
+            throw new RuntimeException(e);
+        }
     }
 
     public void switchToHandle(String handle){
