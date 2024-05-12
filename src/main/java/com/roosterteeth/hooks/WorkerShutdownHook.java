@@ -31,9 +31,6 @@ public class WorkerShutdownHook extends Thread {
         LogUtility.logInfo("Worker has archived: " + worker.hasArchived());
         if(!worker.hasArchived()){
             LogUtility.logInfo("Worker shutting down...");
-            worker.switchToHandle(archiveIndexHandle);
-            worker.endArchiving();
-
             JSONObject results = new JSONObject();
             JSONArray seedsArray = new JSONArray();
             seedsArray.addAll(worker.getFoundUnarchivedURLS());
@@ -62,6 +59,9 @@ public class WorkerShutdownHook extends Thread {
                 LogUtility.logError("Error writing to file: " + e.getMessage());
                 throw new RuntimeException(e);
             }
+
+            worker.switchToHandle(archiveIndexHandle);
+            worker.endArchiving();
         }
     }
 }

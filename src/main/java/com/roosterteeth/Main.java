@@ -243,6 +243,15 @@ public class Main {
                     throw new RuntimeException(e);
                 }
             }
+
+            List<File> outputFiles = new ArrayList<>();
+            for(int i = 0; i < numWorkers; i++) {
+                final String outputPath = System.getProperty("user.dir") + File.separatorChar + "archives"
+                        + File.separatorChar + archiveName + File.separatorChar + "output_worker_"+ i + ".json";
+                new File(outputPath).delete();
+            }
+
+
             LogUtility.logInfo("Workers have finished!");
             //get results from workers
             HashSet<String> unarchivedFoundPages = new HashSet<>();
