@@ -9,6 +9,7 @@ import com.roosterteeth.pages.rtstore.StoreCollectionPage;
 import com.roosterteeth.pages.rtstore.StoreProductPage;
 import com.roosterteeth.pages.rtstoreuk.UKStoreCollectionPage;
 import com.roosterteeth.pages.rtstoreuk.UKStoreProductPage;
+import com.roosterteeth.pages.videos.RoosterteethShowsPage;
 import org.openqa.selenium.WebDriver;
 
 import java.util.HashSet;
@@ -47,6 +48,14 @@ public class RoosterteethPageFactory {
                 return new UKStoreCollectionPage(url,driver,excludedURLS);
             } else if(url.contains("/products")){
                 return new UKStoreProductPage(url,driver,excludedURLS);
+            }
+        }
+
+        if(url.contains("/series")){
+            if(!url.contains("/series/")){
+                return new RoosterteethShowsPage(url,driver,excludedURLS);
+            }else{
+
             }
         }
 
