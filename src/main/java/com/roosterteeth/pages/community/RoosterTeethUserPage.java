@@ -20,7 +20,11 @@ public class RoosterTeethUserPage extends RoosterteethCommunityPage{
     @Override
     public void archivePage() {
         //Click show more for posts
-        super.archivePage();
+        //Click show more for posts
+        if(!driver.getCurrentUrl().equals(url)) {
+            driver.get(url);
+        }
+
         ScrollerUtility.scrollToTopOfElement(driver.findElement(By.xpath("//div[@class='rt-halves__half half--right']")),driver);
         driver.findElement(By.xpath("//div[contains(@class,'rt-profile-tabs__tab wdio-tab-following ')]")).click();
         WaitHelper.waitForPageReady(Duration.ofSeconds(5),driver);
@@ -36,5 +40,7 @@ public class RoosterTeethUserPage extends RoosterteethCommunityPage{
         ScrollerUtility.scrollToTopOfElement(driver.findElement(By.xpath("//div[@class='rt-halves__half half--right']")),driver);
         driver.findElement(By.xpath("//div[contains(@class,'rt-profile-tabs__tab wdio-tab-groups ')]")).click();
         WaitHelper.waitForPageReady(Duration.ofSeconds(5),driver);
+
+        super.archivePage();
     }
 }

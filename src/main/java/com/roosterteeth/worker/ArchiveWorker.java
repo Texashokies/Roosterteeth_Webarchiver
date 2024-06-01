@@ -9,6 +9,7 @@ import com.roosterteeth.utility.WaitHelper;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.openqa.selenium.*;
+import org.openqa.selenium.bidi.log.Log;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.remote.DesiredCapabilities;
@@ -22,6 +23,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.*;
+import java.util.NoSuchElementException;
 
 /**
  * A class for an archive worker, that owns an instance of chrome driver.
@@ -48,6 +50,8 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
 
     private boolean staging;
 
+    private final Dimension screenSize;
+
     private static final String EXTENSIONINDEX = "chrome-extension://fpeoodllldobpkbkabpblcfaogecpndd/replay/index.html";
     private static final String ARCHIVEPAGESELECTOR = "archive-web-page-app";
 
@@ -59,7 +63,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
      * @param archiveName What the created archive should be named.
      * @param staging If true will use staging.roosterteeth.com instead of roosterteeth.com
      */
-    public ArchiveWorker(Set<String> urlsToArchive, Set<String> excludedURLS,int workerID,String archiveName,int pass,String gridPath,boolean staging){
+    public ArchiveWorker(Set<String> urlsToArchive, Set<String> excludedURLS,int workerID,String archiveName,int pass,String gridPath,boolean staging,Dimension screenSize){
         this.urlsToArchive = (HashSet<String>) urlsToArchive;
         this.excludedURLS = (HashSet<String>) excludedURLS;
         this.workerID = workerID;
@@ -70,6 +74,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         this.gridPath = gridPath;
         failedURLS = new HashSet<>();
         this.staging = staging;
+        this.screenSize = screenSize;
     }
 
     @Override
@@ -87,8 +92,14 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         if(staging){
             List<String> processedUrls = new ArrayList<>();
             for(String url : foundURLS){
+                if(!url.contains("https://")){
+                    url = "https://"+url;
+                }
                 if(!url.contains("staging.roosterteeth.com")){
                     processedUrls.add(url.replace("roosterteeth.com","staging.roosterteeth.com"));
+                } else{
+
+                    processedUrls.add(url);
                 }
             }
             foundURLS.clear();
@@ -132,7 +143,11 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         //Install web recorder extension
         driver.get(EXTENSIONINDEX);
         LogUtility.logInfo("Archive index Window handle: " + driver.getWindowHandle());
-        driver.manage().window().maximize();
+        if(screenSize != null){
+            driver.manage().window().setSize(screenSize);
+        }else{
+            driver.manage().window().maximize();
+        }
     }
 
     private void createNewArchive(){
@@ -211,13 +226,16 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         //Will continue until done with last url. Ends archiving.
         for(String urlToArchive:urlsToArchive){
             LogUtility.logInfo(String.format("Starting to archive url %d of %d", urlIndex++,urlsToArchive.size()));
+            LogUtility.logInfo("URL: " + urlToArchive);
             try {
                 RoosterteethPage page = RoosterteethPageFactory.getRoosterteethPageFromURL(urlToArchive,driver,excludedURLS);
                 try{
                     page.archivePage();
-                }catch (WebDriverException e){
+                }catch (Exception e){
                     e.printStackTrace();
+                    LogUtility.logInfo("Failing page, continuing to next page!");
                     failedURLS.add(urlToArchive);
+                    foundURLS.addAll(page.getFoundUnarchivedURLS());
                     continue;
                 }
                 foundURLS.addAll(page.getFoundUnarchivedURLS());
@@ -280,7 +298,7 @@ public class ArchiveWorker implements Runnable,IArchiveWorker{
         final String archivesPath = System.getProperty("user.dir") + File.separatorChar + "archives" + File.separatorChar + archiveName;
         final String archiveFileName = archiveName + String.format("_pass_%d_", pass) + "_worker"+workerID;
         try{
-            WaitHelper.waitForFileToDownload( archivesPath + File.separator + archiveFileName + ".wacz", Duration.ofMinutes(10));
+            WaitHelper.waitForFileToDownload( archivesPath + File.separator + archiveFileName + ".wacz", Duration.ofMinutes(30));
         }catch (TimeoutException e){
             LogUtility.logError("Failed to download file! For worker " + workerID);
             //Still need to quite driver.

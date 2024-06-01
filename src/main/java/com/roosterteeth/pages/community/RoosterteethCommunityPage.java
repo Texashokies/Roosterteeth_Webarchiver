@@ -52,6 +52,7 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
                     ScrollerUtility.scrollToBottomOfElement(driver.findElement(By.xpath("//div[@class='rt-halves__half half--right']")),driver);
                     try{
                         showMorePostsButton.getFirst().click();
+                        LogUtility.logInfo("Clicking show more follows button");
                     }catch (StaleElementReferenceException | NoSuchElementException ex){
                         //Show button probably disappeared because of scroll.
                     }
@@ -124,12 +125,22 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
 
 
         //Iterate over list opening comments
+        LogUtility.logInfo("Clicking on comment buttons");
         List<WebElement> commentButtons = driver.findElements(By.xpath("//div[@class='community-feed__option community-feed__option--comment ']"));
         for (int i = 0; i < commentButtons.size(); i++) {
             WebElement commentButton = commentButtons.get(i);
             Actions actions = new Actions(driver);
             actions.scrollToElement(commentButton).build().perform();
-            commentButton.click();
+            try{
+                commentButton.click();
+            }catch (ElementClickInterceptedException e){
+                LogUtility.logInfo("Element click interception. Trying to remove one trust filter");
+                ((JavascriptExecutor)driver).executeScript("document.querySelectorAll(\".onetrust-pc-dark-filter\").forEach(e => e.remove())\n");
+                commentButtons = driver.findElements(By.xpath("//div[@class='community-feed__option community-feed__option--comment ']"));
+                commentButton = commentButtons.get(i);
+                commentButton.click();
+            }
+
             WebElement commentCountElement = driver.findElement(By.xpath("(//div[contains(@class,'community-feed__option--comment')]//span[@class='community-feed__option-text'])[" + (i+1) +"]"));
             int commentCount;
             try{
@@ -137,6 +148,7 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
             }catch (NumberFormatException e){
                 commentCount =0;
             }
+            LogUtility.logInfo("Comment count: " + commentCount);
             archivePostComments(commentCount);
         }
 
@@ -152,12 +164,17 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
     private static final String COMMENT_MODAL_XPATH = "//div[contains(@class,'modal-post-details')]";
     private static final String COMMENT_XPATH = "//article[@class='comment row ']";
     public void archivePostComments(int commentCount){
+        String windowHandle = driver.getWindowHandle();
         WaitHelper.waitForElementExistence(By.xpath(COMMENT_MODAL_XPATH),Duration.ofSeconds(5),driver);
         WaitHelper.waitForElementVisible(By.xpath(COMMENT_MODAL_XPATH),Duration.ofSeconds(5),driver);
         if(commentCount != 0){
             //Click show more for comments
             List<WebElement> comments = driver.findElements(By.xpath(COMMENT_XPATH));
             if(comments.size() >= 20){
+                boolean testing = false;
+                if(testing){
+                    throw new NoSuchElementException();
+                }
                 List<WebElement> showMoreButton = driver.findElements(By.xpath("//div[contains(@class,'comment-container-show-more')]/a"));
                 while(!showMoreButton.isEmpty()){
                     showMoreButton = driver.findElements(By.xpath("//div[contains(@class,'comment-container-show-more')]/a"));
@@ -174,15 +191,17 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
                 }
             }
             if(commentCount != comments.size()){
+                LogUtility.logInfo("Comment count does not match found comment size of: " + comments.size());
                 List<WebElement> showReplies = driver.findElements(By.xpath("//button[@class='comment-replies-toggle']"));
                 for (int i = 0; i < showReplies.size(); i++) {
                     WebElement showReplyButton = showReplies.get(i);
                     Actions actions = new Actions(driver);
-                    String windowHandle = driver.getWindowHandle();
                     try {
                         ScrollerUtility.scrollIntoMiddle(showReplyButton,driver);
                         showReplyButton.click();
+                        LogUtility.logInfo("Clicking show more replies button");
                         if(driver.getWindowHandles().size() > 2){
+                            LogUtility.logInfo("New tab opened!");
                             driver.switchTo().window((String) driver.getWindowHandles().toArray()[2]);
                             driver.close();
                             driver.switchTo().window(windowHandle);
@@ -192,6 +211,7 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
                         showReplies = driver.findElements(By.xpath("//button[@class='comment-replies-toggle']"));
                         i--;
                     }catch (ElementClickInterceptedException e){
+                        LogUtility.logInfo("Element click Interception!");
                         actions.scrollToElement(showReplyButton).build().perform();
                         showReplyButton.click();
                     }
@@ -217,8 +237,13 @@ public class RoosterteethCommunityPage extends RoosterteethPage {
             }
         }
 
-
         //Close out comment modal
+        if(driver.getWindowHandles().size() > 2){
+            LogUtility.logInfo("New tab opened!");
+            driver.switchTo().window((String) driver.getWindowHandles().toArray()[2]);
+            driver.close();
+            driver.switchTo().window(windowHandle);
+        }
         WebElement closeButton = driver.findElement(By.xpath("//span[contains(@class,'modal-close')]"));
         Actions actions = new Actions(driver);
         actions.scrollToElement(closeButton).click().build().perform();

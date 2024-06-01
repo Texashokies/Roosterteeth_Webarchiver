@@ -8,6 +8,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.openqa.selenium.Dimension;
 
 import java.io.File;
 import java.io.FileReader;
@@ -32,6 +33,8 @@ public class Main {
         int depth = Integer.MAX_VALUE;
         String gridpath = null;
         boolean staging = false;
+        int width = -1;
+        int height = -1;
         //Process arguments
         if(Arrays.asList(args).contains("--h") || Arrays.asList(args).contains("--help")) {
             if(args.length > 1) {
@@ -138,6 +141,12 @@ public class Main {
                 case "--staging":
                     staging = Boolean.parseBoolean(args[i+1]);
                     break;
+                case "--width":
+                    width = Integer.parseInt(args[i+1]);
+                    break;
+                case "--height":
+                    height = Integer.parseInt(args[i+1]);
+                    break;
                 case "--help":
                 case "--h":
 
@@ -170,7 +179,7 @@ public class Main {
             archiveDirectory.mkdirs();
         }
 
-        runWorkers(urlsObject,numWorkers,archiveName,depth,gridpath,staging);
+        runWorkers(urlsObject,numWorkers,archiveName,depth,gridpath,staging,height,width);
     }
 
     /**
@@ -183,7 +192,7 @@ public class Main {
      * @param staging Flag for using staging.roosterteeth.com urls
      * @throws InterruptedException Worker threads may be interrupted
      */
-    private static void runWorkers(JSONObject urlsObject,int numWorkers,String archiveName,int depth,String gridpath,boolean staging) throws InterruptedException, IOException {
+    private static void runWorkers(JSONObject urlsObject,int numWorkers,String archiveName,int depth,String gridpath,boolean staging,int height,int width) throws InterruptedException, IOException {
         if(urlsObject == null){
             throw new IllegalArgumentException("No urls json provided!");
         }
@@ -230,7 +239,11 @@ public class Main {
             List<Future> futures = new ArrayList<>();
             for(int i =0;i<numWorkers && i<sets.size();i++){
                 //TODO remove pass naming scheme if importing archives is possible.
-                workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName,pass,gridpath,staging));
+                Dimension windowSize = null;
+                if(height != -1 && width != -1){
+                    windowSize = new Dimension(width,height);
+                }
+                workers.add(new ArchiveWorker(sets.get(i),excludedUrls,i,archiveName,pass,gridpath,staging,windowSize));
                 Thread workerThread = new Thread(workers.getLast());
                 futures.add(pool.submit(workerThread));
             }

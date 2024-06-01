@@ -20,11 +20,16 @@ public class RoosteerTeethGroupPage extends RoosterteethCommunityPage{
     @Override
     public void archivePage() {
         //Click show more for posts
-        super.archivePage();
+        if(!driver.getCurrentUrl().equals(url)) {
+            driver.get(url);
+        }
+
         ScrollerUtility.scrollToTopOfElement(driver.findElement(By.xpath("//div[@class='rt-halves__half half--right']")),driver);
         driver.findElement(By.xpath("//div[contains(@class,'rt-profile-tabs__tab wdio-tab-members')]")).click();
         WaitHelper.waitForPageReady(Duration.ofSeconds(5),driver);
         WebElement membersCount = driver.findElement(By.xpath("(//div[@class='follows-item__count'])[1]"));
         archiveFollows(Integer.parseInt(membersCount.getText()));
+
+        super.archivePage();
     }
 }
