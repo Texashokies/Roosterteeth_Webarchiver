@@ -1,3 +1,7 @@
+# This project has now been archived since the RT site is down.
+
+Collected archives can be found at: https://texashokies.github.io/Roosterteeth-Site-Archive/
+
 # Roosterteeth Web Archiver
 
 This program is designed to use the Webrecorder Archive.Page Chrome extension to archive the Roosterteeth sites before they are taken down.
